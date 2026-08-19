@@ -19,3 +19,18 @@ describe('GET /health', () => {
     expect(response.body).toEqual({ ok: true });
   });
 });
+
+describe('full app wiring', () => {
+  it('serves /api/config publicly', async () => {
+    const { app } = await import('../src/server.js');
+    const response = await request(app).get('/api/config');
+    expect(response.status).toBe(200);
+    expect(response.body.nikolaiBotUrl).toBe('https://t.me/nikolai_bot');
+  });
+
+  it('rejects /api/me without initData', async () => {
+    const { app } = await import('../src/server.js');
+    const response = await request(app).get('/api/me');
+    expect(response.status).toBe(401);
+  });
+});
