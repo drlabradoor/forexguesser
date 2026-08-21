@@ -40,4 +40,17 @@ describe('full app wiring', () => {
     const response = await request(app).get('/api/me');
     expect(response.status).toBe(401);
   });
+
+  it('serves the mini app shell', async () => {
+    const response = await request(app).get('/');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('<div id="app"');
+  });
+
+  it('serves the front-end modules', async () => {
+    for (const path of ['/js/app.js', '/js/state.js', '/js/api.js', '/js/screens/screenshot.js']) {
+      const response = await request(app).get(path);
+      expect(response.status, path).toBe(200);
+    }
+  });
 });

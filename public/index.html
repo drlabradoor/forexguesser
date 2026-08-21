@@ -2,29 +2,16 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Анализ графика</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>Анализ графика</h1>
-    <div id="upload-screen">
-      <label class="upload-button" for="file-input">📷 Загрузить скриншот</label>
-      <input type="file" id="file-input" accept="image/*" capture="environment" />
-    </div>
-    <div id="loading-screen" class="hidden">Анализирую график...</div>
-    <div id="result-screen" class="hidden">
-      <div id="balance" class="balance"></div>
-      <div id="signal"></div>
-      <a id="cta-button" class="cta-button" href="#" target="_blank" rel="noopener">Хочешь больше точных сигналов?</a>
-    </div>
-    <div id="used-screen" class="hidden">
-      <p>Бесплатный анализ уже использован.</p>
-      <a id="cta-button-used" class="cta-button" href="#" target="_blank" rel="noopener">Получить больше сигналов</a>
-    </div>
+  <div id="app" class="app">
+    <main id="content" class="content"></main>
+    <nav id="tabbar" class="tabbar"></nav>
   </div>
-  <script src="app.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
