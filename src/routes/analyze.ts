@@ -25,7 +25,7 @@ export function createAnalyzeHandler(usersRepo: UsersRepo, claude: Anthropic) {
       }
 
       const signal = await analyzeChart(claude, imageBase64, mediaType);
-      const balance = user.balanceOverride ?? generateBalance();
+      const balance = user.balanceOverride ?? generateBalance(telegramUser.id);
 
       if (!user.unlimitedAccess) {
         await usersRepo.markRunUsed(telegramUser.id);
