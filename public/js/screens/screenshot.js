@@ -256,6 +256,30 @@ function renderResult() {
   return wrapper;
 }
 
+function renderError() {
+  const { title, text, action } = state.error;
+  const card = document.createElement('section');
+  card.className = 'errorbox';
+  const button =
+    action === 'cta'
+      ? '<button class="button button--primary" data-action="cta">Получить полный доступ</button>'
+      : action === 'retry'
+        ? '<button class="button button--primary" data-action="retry">Попробовать снова</button>'
+        : '';
+  card.innerHTML = `
+    <span class="errorbox__icon">${icons.warn}</span>
+    <div class="errorbox__title">${title}</div>
+    <p class="errorbox__text">${text}</p>
+    ${button}
+  `;
+  card.addEventListener('click', (event) => {
+    if (event.target.closest('[data-action="retry"]')) {
+      setState({ phase: state.file ? 'selected' : 'idle', error: null });
+    }
+  });
+  return card;
+}
+
 export function renderScreenshot() {
   const section = document.createElement('section');
   section.className = 'screen';
@@ -268,7 +292,7 @@ export function renderScreenshot() {
     return section;
   }
 
-  section.appendChild(renderPreview());
+  if (state.previewUrl) section.appendChild(renderPreview());
 
   if (state.phase === 'selected' || state.phase === 'analyzing') {
     section.appendChild(renderAnalyzeButton());
@@ -278,6 +302,9 @@ export function renderScreenshot() {
   }
   if (state.phase === 'result' && state.signal) {
     section.appendChild(renderResult());
+  }
+  if (state.phase === 'error' && state.error) {
+    section.appendChild(renderError());
   }
   return section;
 }

@@ -374,6 +374,23 @@ body {
 .breakdown__summary::-webkit-details-marker { display: none; }
 .breakdown__text { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--text-dim); }
 
+.errorbox {
+  background: var(--surface);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-card);
+  padding: 20px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.errorbox__icon { color: var(--danger); }
+.errorbox__icon svg { width: 26px; height: 26px; }
+.errorbox__title { font-size: 15px; font-weight: 600; }
+.errorbox__text { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+
 /* Admin panel (admin.html).
    Scoped to the admin markup on purpose: a bare `button` rule here would
    leak its margin and padding into the mini app's tab bar and chips. */

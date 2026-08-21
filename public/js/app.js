@@ -3,6 +3,7 @@ import { icons } from './icons.js';
 import { getConfig, getMe } from './api.js';
 import { renderScreenshot } from './screens/screenshot.js';
 import { renderLocked } from './screens/locked.js';
+import { openAccessChat } from './cta.js';
 
 const tg = window.Telegram?.WebApp;
 
@@ -55,6 +56,10 @@ function render() {
 document.getElementById('tabbar').addEventListener('click', (event) => {
   const button = event.target.closest('[data-tab]');
   if (button) setState({ tab: button.dataset.tab });
+});
+
+document.getElementById('content').addEventListener('click', (event) => {
+  if (event.target.closest('[data-action="cta"]')) openAccessChat(state.targetUrl);
 });
 
 subscribe(render);
