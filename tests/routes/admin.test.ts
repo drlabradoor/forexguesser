@@ -11,6 +11,7 @@ import { createAdminRouter } from '../../src/routes/admin.js';
 
 const BOT_TOKEN = 'test-bot-token';
 const OWNER_ID = 100;
+const VERSION_INFO = { version: '0.1.0', commit: '377d250', startedAt: '2026-08-21T13:30:00.000Z' };
 
 function buildInitData(telegramId: number): string {
   const fields = {
@@ -41,7 +42,7 @@ beforeEach(async () => {
     '/api/admin',
     createAuthMiddleware(BOT_TOKEN),
     createRequireAdminMiddleware(adminsRepo),
-    createAdminRouter(usersRepo, adminsRepo, OWNER_ID)
+    createAdminRouter(usersRepo, adminsRepo, OWNER_ID, VERSION_INFO)
   );
 });
 
@@ -98,5 +99,22 @@ describe('admin routes', () => {
       .send({ telegramId: 55 });
     expect(response.status).toBe(403);
     expect(await adminsRepo.isAdmin(55)).toBe(false);
+  });
+
+  it('reports the running version to an admin', async () => {
+    const response = await request(app)
+      .get('/api/admin/version')
+      .set('X-Telegram-Init-Data', buildInitData(OWNER_ID));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(VERSION_INFO);
+  });
+
+  it('keeps the version behind the admin check', async () => {
+    const response = await request(app)
+      .get('/api/admin/version')
+      .set('X-Telegram-Init-Data', buildInitData(999));
+
+    expect(response.status).toBe(403);
   });
 });

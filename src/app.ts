@@ -9,6 +9,7 @@ import { createConfigHandler } from './routes/config.js';
 import { createMeHandler } from './routes/me.js';
 import { createAnalyzeHandler } from './routes/analyze.js';
 import { createAdminRouter } from './routes/admin.js';
+import type { VersionInfo } from './version.js';
 
 export interface AppDeps {
   usersRepo: UsersRepo;
@@ -18,6 +19,7 @@ export interface AppDeps {
   ownerTelegramId: number;
   targetUrl: string;
   freeRunLimitEnabled: boolean;
+  versionInfo: VersionInfo;
 }
 
 export function buildApp(deps: AppDeps): express.Express {
@@ -42,7 +44,7 @@ export function buildApp(deps: AppDeps): express.Express {
     '/api/admin',
     authMiddleware,
     requireAdmin,
-    createAdminRouter(deps.usersRepo, deps.adminsRepo, deps.ownerTelegramId)
+    createAdminRouter(deps.usersRepo, deps.adminsRepo, deps.ownerTelegramId, deps.versionInfo)
   );
 
   return app;

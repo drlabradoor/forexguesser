@@ -397,6 +397,13 @@ body {
 body > h1 { margin: 16px; font-size: 20px; }
 body > p { margin: 16px; }
 
+.version {
+  margin-top: -8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
 #users-table {
   width: calc(100% - 32px);
   margin: 16px;

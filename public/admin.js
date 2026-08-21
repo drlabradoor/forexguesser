@@ -13,6 +13,33 @@ function apiFetch(path, options = {}) {
   });
 }
 
+function formatStarted(iso) {
+  const started = new Date(iso);
+  if (Number.isNaN(started.getTime())) return 'время неизвестно';
+  const stamp = started.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const hours = Math.floor((Date.now() - started.getTime()) / 3600000);
+  return hours >= 1 ? `${stamp} (${hours} ч назад)` : stamp;
+}
+
+async function loadVersion() {
+  const el = document.getElementById('version');
+  if (!el) return;
+  try {
+    const response = await apiFetch('/api/admin/version');
+    if (!response.ok) throw new Error(String(response.status));
+    const info = await response.json();
+    const commit = info.commit ?? 'коммит неизвестен';
+    el.textContent = `v${info.version} · ${commit} · запущен ${formatStarted(info.startedAt)}`;
+  } catch {
+    el.textContent = 'версия недоступна';
+  }
+}
+
 async function loadUsers() {
   const response = await apiFetch('/api/admin/users');
   if (!response.ok) {
@@ -57,4 +84,6 @@ document.getElementById('users-body').addEventListener('click', async (event) =>
   await loadUsers();
 });
 
-loadUsers();
+// Version first: a denied loadUsers() replaces the whole body, taking the
+// version element with it.
+loadVersion().then(loadUsers);

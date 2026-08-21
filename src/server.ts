@@ -7,9 +7,12 @@ import { AdminsRepo } from './db/admins.repo.js';
 import { buildApp } from './app.js';
 import { createBotPoller } from './telegram/bot.js';
 import { buildTargetUrl } from './telegram/deeplink.js';
+import { collectVersionInfo } from './version.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  const versionInfo = collectVersionInfo();
+  console.log(`Version ${versionInfo.version}, commit ${versionInfo.commit ?? 'unknown'}`);
 
   const pool = createPool(config.databaseUrl);
   await initSchema(pool);
@@ -26,6 +29,7 @@ async function main(): Promise<void> {
     ownerTelegramId: config.ownerTelegramId,
     targetUrl: buildTargetUrl(config.targetUsername),
     freeRunLimitEnabled: config.freeRunLimitEnabled,
+    versionInfo,
   });
 
   // Bind 0.0.0.0 explicitly: hosting platforms route to the container's

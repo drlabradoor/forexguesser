@@ -2,9 +2,19 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import type { UsersRepo } from '../db/users.repo.js';
 import type { AdminsRepo } from '../db/admins.repo.js';
+import type { VersionInfo } from '../version.js';
 
-export function createAdminRouter(usersRepo: UsersRepo, adminsRepo: AdminsRepo, ownerTelegramId: number): Router {
+export function createAdminRouter(
+  usersRepo: UsersRepo,
+  adminsRepo: AdminsRepo,
+  ownerTelegramId: number,
+  versionInfo: VersionInfo
+): Router {
   const router = Router();
+
+  router.get('/version', (_req: Request, res: Response) => {
+    res.json(versionInfo);
+  });
 
   router.get('/users', async (_req: Request, res: Response, next: NextFunction) => {
     try {
