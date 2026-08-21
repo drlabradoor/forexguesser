@@ -28,10 +28,16 @@ export function validateInitData(
   const userJson = params.get('user');
   if (!userJson) return null;
 
-  const parsed = JSON.parse(userJson) as { id: number; first_name: string; username?: string };
+  const parsed = JSON.parse(userJson) as {
+    id: number;
+    first_name: string;
+    username?: string;
+    photo_url?: string;
+  };
   return {
     id: parsed.id,
     firstName: parsed.first_name,
     username: parsed.username,
+    photoUrl: parsed.photo_url,
   };
 }

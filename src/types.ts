@@ -20,4 +20,5 @@ export interface TelegramUser {
   id: number;
   firstName: string;
   username?: string;
+  photoUrl?: string;
 }

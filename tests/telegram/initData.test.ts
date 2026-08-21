@@ -45,4 +45,24 @@ describe('validateInitData', () => {
   it('returns null when the hash field is missing', () => {
     expect(validateInitData('auth_date=123&user=%7B%7D', BOT_TOKEN)).toBeNull();
   });
+
+  it('returns photoUrl when the user object carries photo_url', () => {
+    const authDate = String(Math.floor(Date.now() / 1000));
+    const user = JSON.stringify({
+      id: 42,
+      first_name: 'Dima',
+      photo_url: 'https://t.me/i/userpic/320/abc.jpg',
+    });
+    const initData = buildInitData({ auth_date: authDate, user }, BOT_TOKEN);
+
+    expect(validateInitData(initData, BOT_TOKEN)?.photoUrl).toBe('https://t.me/i/userpic/320/abc.jpg');
+  });
+
+  it('leaves photoUrl undefined when photo_url is absent', () => {
+    const authDate = String(Math.floor(Date.now() / 1000));
+    const user = JSON.stringify({ id: 42, first_name: 'Dima' });
+    const initData = buildInitData({ auth_date: authDate, user }, BOT_TOKEN);
+
+    expect(validateInitData(initData, BOT_TOKEN)?.photoUrl).toBeUndefined();
+  });
 });
