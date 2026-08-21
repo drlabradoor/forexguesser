@@ -1,7 +1,9 @@
 import { state, setState } from '../state.js';
 import { icons } from '../icons.js';
 import { formatBalance, DEMO_BALANCE } from '../format.js';
-import { ALLOWED_TYPES } from '../image.js';
+import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
+import { postAnalyze, ApiError } from '../api.js';
+import { startStatusRotation } from '../statuses.js';
 
 function initials(name) {
   return (name || '?').trim().slice(0, 1).toUpperCase();
@@ -119,6 +121,66 @@ function renderPreview() {
   return box;
 }
 
+function errorFor(err) {
+  if (err instanceof ImageError) {
+    return { title: 'Не удалось прочитать изображение', text: 'Попробуйте другой скриншот.', action: 'retry' };
+  }
+  if (err instanceof ApiError) {
+    if (err.status === 403) {
+      return {
+        title: 'Бесплатный анализ уже использован',
+        text: 'Полный доступ открывает неограниченный разбор графиков.',
+        action: 'cta',
+      };
+    }
+    if (err.status === 401) {
+      return { title: 'Сессия устарела', text: 'Закройте и откройте приложение заново.', action: 'none' };
+    }
+    if (err.status === 400) {
+      return { title: 'Не удалось прочитать изображение', text: 'Попробуйте другой скриншот.', action: 'retry' };
+    }
+  }
+  return { title: 'Не удалось разобрать график', text: 'Попробуйте другой скриншот.', action: 'retry' };
+}
+
+async function runAnalysis() {
+  setState({ phase: 'analyzing', error: null });
+  const statusEl = document.querySelector('.analysis__status');
+  const rotation = statusEl ? startStatusRotation(statusEl) : null;
+
+  try {
+    const prepared = await prepareImage(state.file);
+    const data = await postAnalyze(prepared);
+    if (rotation) await rotation.finish();
+    setState({ phase: 'result', signal: data.signal });
+  } catch (err) {
+    if (rotation) await rotation.finish();
+    setState({ phase: 'error', error: errorFor(err) });
+  }
+}
+
+function renderAnalyzeButton() {
+  const button = document.createElement('button');
+  button.className = 'button button--primary';
+  button.disabled = state.phase === 'analyzing';
+  button.innerHTML =
+    state.phase === 'analyzing'
+      ? '<span class="spinner"></span>Анализ'
+      : `${icons.camera}Анализировать скриншот`;
+  button.addEventListener('click', runAnalysis);
+  return button;
+}
+
+function renderAnalysisCard() {
+  const card = document.createElement('section');
+  card.className = 'analysis';
+  card.innerHTML = `
+    <div class="analysis__label">${icons.clock}Технический разбор</div>
+    <div class="analysis__status"></div>
+  `;
+  return card;
+}
+
 export function renderScreenshot() {
   const section = document.createElement('section');
   section.className = 'screen';
@@ -128,8 +190,16 @@ export function renderScreenshot() {
 
   if (state.phase === 'idle' || state.phase === 'loading') {
     section.appendChild(renderDropzone());
-  } else {
-    section.appendChild(renderPreview());
+    return section;
+  }
+
+  section.appendChild(renderPreview());
+
+  if (state.phase === 'selected' || state.phase === 'analyzing') {
+    section.appendChild(renderAnalyzeButton());
+  }
+  if (state.phase === 'analyzing') {
+    section.appendChild(renderAnalysisCard());
   }
   return section;
 }

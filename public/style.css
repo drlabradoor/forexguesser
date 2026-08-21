@@ -261,6 +261,37 @@ body {
 
 #file-input { display: none; }
 
+.analysis {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+}
+
+.analysis__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.analysis__label svg { width: 13px; height: 13px; }
+.analysis__status { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(13, 14, 16, 0.25);
+  border-top-color: #0D0E10;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* Admin panel (admin.html).
    Scoped to the admin markup on purpose: a bare `button` rule here would
    leak its margin and padding into the mini app's tab bar and chips. */
