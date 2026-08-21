@@ -26,8 +26,10 @@ async function main(): Promise<void> {
     targetUrl: `https://t.me/${config.targetUsername}`,
   });
 
-  app.listen(config.port, () => {
-    console.log(`Server listening on port ${config.port}`);
+  // Bind 0.0.0.0 explicitly: hosting platforms route to the container's
+  // external interface, and a loopback-only listener answers nothing (502).
+  app.listen(config.port, '0.0.0.0', () => {
+    console.log(`Server listening on 0.0.0.0:${config.port}`);
   });
 
   if (!config.skipBotPolling) {
