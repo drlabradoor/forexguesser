@@ -7,6 +7,7 @@ export interface Config {
   targetUsername: string;
   appUrl: string;
   skipBotPolling: boolean;
+  freeRunLimitEnabled: boolean;
 }
 
 const REQUIRED_KEYS = [
@@ -33,5 +34,7 @@ export function loadConfig(): Config {
     targetUsername: process.env.TARGET_USERNAME!.replace(/^@/, ''),
     appUrl: process.env.APP_URL!,
     skipBotPolling: process.env.SKIP_BOT_POLLING === 'true',
+    // Opt-out, not opt-in: a forgotten variable keeps the paywall on.
+    freeRunLimitEnabled: process.env.FREE_RUN_LIMIT_ENABLED !== 'false',
   };
 }

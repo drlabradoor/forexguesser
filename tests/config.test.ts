@@ -40,4 +40,21 @@ describe('loadConfig', () => {
     delete process.env.DATABASE_URL;
     expect(() => loadConfig()).toThrow('Missing required environment variable: DATABASE_URL');
   });
+
+  it('enables the free run limit by default', () => {
+    delete process.env.FREE_RUN_LIMIT_ENABLED;
+    expect(loadConfig().freeRunLimitEnabled).toBe(true);
+  });
+
+  it('disables the free run limit only for the literal "false"', () => {
+    process.env.FREE_RUN_LIMIT_ENABLED = 'false';
+    expect(loadConfig().freeRunLimitEnabled).toBe(false);
+  });
+
+  it('keeps the limit enabled for any other value', () => {
+    process.env.FREE_RUN_LIMIT_ENABLED = 'true';
+    expect(loadConfig().freeRunLimitEnabled).toBe(true);
+    process.env.FREE_RUN_LIMIT_ENABLED = 'no';
+    expect(loadConfig().freeRunLimitEnabled).toBe(true);
+  });
 });
