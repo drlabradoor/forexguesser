@@ -1,6 +1,6 @@
 import { state, setState } from '../state.js';
 import { icons } from '../icons.js';
-import { formatBalance, DEMO_BALANCE } from '../format.js';
+import { formatBalance, formatPrice, DEMO_BALANCE } from '../format.js';
 import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
 import { postAnalyze, ApiError } from '../api.js';
 import { startStatusRotation } from '../statuses.js';
@@ -181,6 +181,81 @@ function renderAnalysisCard() {
   return card;
 }
 
+const TREND = {
+  bullish: { label: 'Вверх · BUY', modifier: 'up', icon: 'arrowUp' },
+  bearish: { label: 'Вниз · SELL', modifier: 'down', icon: 'arrowDown' },
+  neutral: { label: 'Нейтрально', modifier: 'flat', icon: 'clock' },
+};
+
+const MAX_KEY_POINTS = 5;
+
+function renderResult() {
+  const signal = state.signal;
+  const trend = TREND[signal.trend] ?? TREND.neutral;
+
+  const levels = [
+    ['Вход', signal.entryPrice],
+    ['Стоп-лосс', signal.stopLoss],
+    ['ТП1', signal.takeProfit1],
+    ['ТП2', signal.takeProfit2],
+    ['ТП3', signal.takeProfit3],
+  ];
+
+  const keyPoints = (signal.keyPoints ?? []).slice(0, MAX_KEY_POINTS);
+
+  const wrapper = document.createElement('section');
+  wrapper.className = 'result';
+  wrapper.innerHTML = `
+    <div class="verdict verdict--${trend.modifier}">
+      <span class="verdict__icon">${icons[trend.icon]}</span>
+      <div class="verdict__label">${trend.label}</div>
+      <div class="verdict__instrument">${signal.instrument ?? 'Инструмент не определён'}</div>
+      <div class="badge">
+        ${icons.clock}
+        <span class="badge__label">Таймфрейм</span>
+        <span class="badge__value">${signal.timeframe ?? 'не определён'}</span>
+      </div>
+    </div>
+
+    <div class="levels">
+      ${levels
+        .map(
+          ([label, value]) => `
+        <div class="level">
+          <div class="level__label">${label}</div>
+          <div class="level__value">${formatPrice(value)}</div>
+        </div>`
+        )
+        .join('')}
+    </div>
+
+    ${
+      keyPoints.length
+        ? `<div class="keypoints">
+             <div class="keypoints__label">Ключевые признаки</div>
+             ${keyPoints
+               .map(
+                 (point) => `
+               <div class="keypoint keypoint--${point.status}">
+                 <span class="keypoint__icon">${point.status === 'warn' ? icons.warn : icons.check}</span>
+                 <span>${point.text}</span>
+               </div>`
+               )
+               .join('')}
+           </div>`
+        : ''
+    }
+
+    <details class="breakdown">
+      <summary class="breakdown__summary">Технический разбор</summary>
+      <p class="breakdown__text">${signal.rationale}</p>
+    </details>
+
+    <button class="button button--primary" data-action="cta">Получить полный доступ</button>
+  `;
+  return wrapper;
+}
+
 export function renderScreenshot() {
   const section = document.createElement('section');
   section.className = 'screen';
@@ -200,6 +275,9 @@ export function renderScreenshot() {
   }
   if (state.phase === 'analyzing') {
     section.appendChild(renderAnalysisCard());
+  }
+  if (state.phase === 'result' && state.signal) {
+    section.appendChild(renderResult());
   }
   return section;
 }

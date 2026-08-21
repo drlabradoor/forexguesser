@@ -292,6 +292,88 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.result { display: flex; flex-direction: column; gap: 12px; }
+
+.verdict {
+  border-radius: var(--radius-card);
+  border: 1px solid;
+  padding: 20px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.verdict--up { background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.35); color: var(--success); }
+.verdict--down { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.35); color: var(--danger); }
+.verdict--flat { background: var(--surface); border-color: var(--border); color: var(--text-dim); }
+
+.verdict__icon svg { width: 30px; height: 30px; }
+.verdict__label { font-size: 19px; font-weight: 700; }
+.verdict__instrument { font-size: 13px; color: var(--text-dim); }
+
+.badge {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--text-dim);
+}
+
+.badge svg { width: 13px; height: 13px; color: var(--accent); }
+.badge__label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+.badge__value { font-size: 12px; font-weight: 600; color: var(--text); }
+
+.levels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.level {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.level__label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-mute); }
+.level__value { margin-top: 3px; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.keypoints {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keypoints__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mute);
+}
+
+.keypoint { display: flex; gap: 9px; font-size: 13px; line-height: 1.45; color: var(--text-dim); }
+.keypoint__icon { flex-shrink: 0; margin-top: 1px; }
+.keypoint__icon svg { width: 15px; height: 15px; }
+.keypoint--ok .keypoint__icon { color: var(--success); }
+.keypoint--warn .keypoint__icon { color: var(--warn); }
+
+.breakdown {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 13px 16px;
+}
+
+.breakdown__summary { font-size: 13px; font-weight: 500; cursor: pointer; list-style: none; color: var(--text-dim); }
+.breakdown__summary::-webkit-details-marker { display: none; }
+.breakdown__text { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--text-dim); }
+
 /* Admin panel (admin.html).
    Scoped to the admin markup on purpose: a bare `button` rule here would
    leak its margin and padding into the mini app's tab bar and chips. */
