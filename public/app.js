@@ -8,7 +8,7 @@ const resultScreen = document.getElementById('result-screen');
 const usedScreen = document.getElementById('used-screen');
 const fileInput = document.getElementById('file-input');
 
-let nikolaiBotUrl = '#';
+let nikolaiUrl = '#';
 
 function showScreen(el) {
   for (const screen of [uploadScreen, loadingScreen, resultScreen, usedScreen]) {
@@ -74,25 +74,25 @@ fileInput.addEventListener('change', async (event) => {
   });
 
   if (response.status === 403) {
-    document.getElementById('cta-button-used').href = nikolaiBotUrl;
+    document.getElementById('cta-button-used').href = nikolaiUrl;
     showScreen(usedScreen);
     return;
   }
 
   const data = await response.json();
   renderSignal(data.signal);
-  document.getElementById('cta-button').href = nikolaiBotUrl;
+  document.getElementById('cta-button').href = nikolaiUrl;
   showScreen(resultScreen);
   animateBalance(data.balance);
 });
 
 async function init() {
   const configData = await (await fetch('/api/config')).json();
-  nikolaiBotUrl = configData.nikolaiBotUrl;
+  nikolaiUrl = configData.nikolaiUrl;
 
   const me = await (await apiFetch('/api/me')).json();
   if (me.alreadyUsed) {
-    document.getElementById('cta-button-used').href = nikolaiBotUrl;
+    document.getElementById('cta-button-used').href = nikolaiUrl;
     showScreen(usedScreen);
   } else {
     showScreen(uploadScreen);

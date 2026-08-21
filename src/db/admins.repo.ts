@@ -1,19 +1,22 @@
-import type Database from 'better-sqlite3';
+import type { Queryable } from './db.js';
 
 export class AdminsRepo {
-  constructor(private db: Database.Database) {}
+  constructor(private db: Queryable) {}
 
-  isAdmin(telegramId: number): boolean {
-    const row = this.db.prepare('SELECT 1 FROM admins WHERE telegram_id = ?').get(telegramId);
-    return !!row;
+  async isAdmin(telegramId: number): Promise<boolean> {
+    const result = await this.db.query('SELECT 1 FROM admins WHERE telegram_id = $1', [telegramId]);
+    return result.rows.length > 0;
   }
 
-  add(telegramId: number, addedBy: number | null): void {
-    this.db.prepare('INSERT OR IGNORE INTO admins (telegram_id, added_by) VALUES (?, ?)').run(telegramId, addedBy);
+  async add(telegramId: number, addedBy: number | null): Promise<void> {
+    await this.db.query(
+      'INSERT INTO admins (telegram_id, added_by) VALUES ($1, $2) ON CONFLICT (telegram_id) DO NOTHING',
+      [telegramId, addedBy]
+    );
   }
 
-  listAll(): number[] {
-    const rows = this.db.prepare('SELECT telegram_id FROM admins').all() as { telegram_id: number }[];
-    return rows.map((r) => r.telegram_id);
+  async listAll(): Promise<number[]> {
+    const result = await this.db.query('SELECT telegram_id FROM admins');
+    return (result.rows as { telegram_id: number }[]).map((r) => Number(r.telegram_id));
   }
 }

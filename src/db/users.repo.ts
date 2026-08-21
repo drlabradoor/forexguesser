@@ -1,60 +1,57 @@
-import type Database from 'better-sqlite3';
+import type { Queryable } from './db.js';
 import type { UserRecord } from '../types.js';
 
 interface UserRow {
   telegram_id: number;
-  free_run_used: number;
-  unlimited_access: number;
+  free_run_used: boolean;
+  unlimited_access: boolean;
   balance_override: number | null;
-  created_at: string;
+  created_at: Date | string;
 }
 
 function rowToUser(row: UserRow): UserRecord {
   return {
-    telegramId: row.telegram_id,
+    telegramId: Number(row.telegram_id),
     freeRunUsed: !!row.free_run_used,
     unlimitedAccess: !!row.unlimited_access,
-    balanceOverride: row.balance_override,
-    createdAt: row.created_at,
+    balanceOverride: row.balance_override === null ? null : Number(row.balance_override),
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
   };
 }
 
 export class UsersRepo {
-  constructor(private db: Database.Database) {}
+  constructor(private db: Queryable) {}
 
-  getOrCreate(telegramId: number): UserRecord {
-    const existing = this.db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId) as
-      | UserRow
-      | undefined;
-    if (existing) return rowToUser(existing);
-
-    this.db.prepare('INSERT INTO users (telegram_id) VALUES (?)').run(telegramId);
-    const created = this.db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId) as UserRow;
-    return rowToUser(created);
+  async getOrCreate(telegramId: number): Promise<UserRecord> {
+    await this.db.query('INSERT INTO users (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING', [
+      telegramId,
+    ]);
+    const result = await this.db.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
+    return rowToUser(result.rows[0] as UserRow);
   }
 
-  markRunUsed(telegramId: number): void {
-    this.getOrCreate(telegramId);
-    this.db.prepare('UPDATE users SET free_run_used = 1 WHERE telegram_id = ?').run(telegramId);
+  async markRunUsed(telegramId: number): Promise<void> {
+    await this.getOrCreate(telegramId);
+    await this.db.query('UPDATE users SET free_run_used = TRUE WHERE telegram_id = $1', [telegramId]);
   }
 
-  setUnlimited(telegramId: number, enabled: boolean): void {
-    this.getOrCreate(telegramId);
-    this.db.prepare('UPDATE users SET unlimited_access = ? WHERE telegram_id = ?').run(enabled ? 1 : 0, telegramId);
+  async setUnlimited(telegramId: number, enabled: boolean): Promise<void> {
+    await this.getOrCreate(telegramId);
+    await this.db.query('UPDATE users SET unlimited_access = $1 WHERE telegram_id = $2', [enabled, telegramId]);
   }
 
-  resetRun(telegramId: number): void {
-    this.getOrCreate(telegramId);
-    this.db.prepare('UPDATE users SET free_run_used = 0 WHERE telegram_id = ?').run(telegramId);
+  async resetRun(telegramId: number): Promise<void> {
+    await this.getOrCreate(telegramId);
+    await this.db.query('UPDATE users SET free_run_used = FALSE WHERE telegram_id = $1', [telegramId]);
   }
 
-  setBalanceOverride(telegramId: number, value: number | null): void {
-    this.getOrCreate(telegramId);
-    this.db.prepare('UPDATE users SET balance_override = ? WHERE telegram_id = ?').run(value, telegramId);
+  async setBalanceOverride(telegramId: number, value: number | null): Promise<void> {
+    await this.getOrCreate(telegramId);
+    await this.db.query('UPDATE users SET balance_override = $1 WHERE telegram_id = $2', [value, telegramId]);
   }
 
-  listAll(): UserRecord[] {
-    const rows = this.db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as UserRow[];
-    return rows.map(rowToUser);
+  async listAll(): Promise<UserRecord[]> {
+    const result = await this.db.query('SELECT * FROM users ORDER BY created_at DESC');
+    return (result.rows as UserRow[]).map(rowToUser);
   }
 }

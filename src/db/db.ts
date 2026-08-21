@@ -1,13 +1,40 @@
-import Database from 'better-sqlite3';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import pg from 'pg';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+/**
+ * Minimal surface both a real `pg.Pool` and pg-mem's test adapter satisfy,
+ * so repositories can be constructed against either.
+ */
+export interface Queryable {
+  query(text: string, values?: unknown[]): Promise<{ rows: any[] }>;
+}
 
-export function createDb(filePath: string): Database.Database {
-  const db = new Database(filePath);
-  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
-  db.exec(schema);
-  return db;
+// Telegram IDs arrive as BIGINT. node-postgres returns those as strings by
+// default; every id we store fits comfortably inside a JS number.
+pg.types.setTypeParser(pg.types.builtins.INT8, (value: string) => Number(value));
+
+export const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS users (
+  telegram_id BIGINT PRIMARY KEY,
+  free_run_used BOOLEAN NOT NULL DEFAULT FALSE,
+  unlimited_access BOOLEAN NOT NULL DEFAULT FALSE,
+  balance_override DOUBLE PRECISION,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admins (
+  telegram_id BIGINT PRIMARY KEY,
+  added_by BIGINT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`;
+
+export function createPool(connectionString: string, useSsl: boolean): pg.Pool {
+  return new pg.Pool({
+    connectionString,
+    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+  });
+}
+
+export async function initSchema(db: Queryable): Promise<void> {
+  await db.query(SCHEMA_SQL);
 }

@@ -1,19 +1,27 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import type express from 'express';
+import { createTestDb } from './helpers/testDb.js';
+import { UsersRepo } from '../src/db/users.repo.js';
+import { AdminsRepo } from '../src/db/admins.repo.js';
+import { buildApp } from '../src/app.js';
 
-beforeAll(() => {
-  process.env.BOT_TOKEN = 'test-bot-token';
-  process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-  process.env.OWNER_TELEGRAM_ID = '1';
-  process.env.NIKOLAI_BOT_USERNAME = 'nikolai_bot';
-  process.env.APP_URL = 'https://example.com';
-  process.env.DB_PATH = ':memory:';
-  process.env.SKIP_BOT_POLLING = 'true';
+let app: express.Express;
+
+beforeEach(async () => {
+  const db = await createTestDb();
+  app = buildApp({
+    usersRepo: new UsersRepo(db),
+    adminsRepo: new AdminsRepo(db),
+    claude: { messages: { create: vi.fn() } } as any,
+    botToken: 'test-bot-token',
+    ownerTelegramId: 1,
+    nikolaiUrl: 'https://t.me/nikolai',
+  });
 });
 
 describe('GET /health', () => {
   it('returns 200 ok', async () => {
-    const { app } = await import('../src/server.js');
     const response = await request(app).get('/health');
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true });
@@ -22,14 +30,12 @@ describe('GET /health', () => {
 
 describe('full app wiring', () => {
   it('serves /api/config publicly', async () => {
-    const { app } = await import('../src/server.js');
     const response = await request(app).get('/api/config');
     expect(response.status).toBe(200);
-    expect(response.body.nikolaiBotUrl).toBe('https://t.me/nikolai_bot');
+    expect(response.body.nikolaiUrl).toBe('https://t.me/nikolai');
   });
 
   it('rejects /api/me without initData', async () => {
-    const { app } = await import('../src/server.js');
     const response = await request(app).get('/api/me');
     expect(response.status).toBe(401);
   });

@@ -5,7 +5,8 @@ const REQUIRED_ENV = {
   BOT_TOKEN: 'bot-token',
   ANTHROPIC_API_KEY: 'anthropic-key',
   OWNER_TELEGRAM_ID: '123',
-  NIKOLAI_BOT_USERNAME: 'nikolai_bot',
+  DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+  NIKOLAI_USERNAME: 'nikolai',
   APP_URL: 'https://example.com',
 };
 
@@ -24,14 +25,19 @@ describe('loadConfig', () => {
     const config = loadConfig();
     expect(config.botToken).toBe('bot-token');
     expect(config.ownerTelegramId).toBe(123);
-    expect(config.nikolaiBotUsername).toBe('nikolai_bot');
+    expect(config.databaseUrl).toBe('postgres://user:pass@localhost:5432/db');
+    expect(config.nikolaiUsername).toBe('nikolai');
     expect(config.appUrl).toBe('https://example.com');
     expect(config.port).toBe(3000);
-    expect(config.dbPath).toBe('data.sqlite');
+  });
+
+  it('strips a leading @ from NIKOLAI_USERNAME', () => {
+    process.env.NIKOLAI_USERNAME = '@nikolai';
+    expect(loadConfig().nikolaiUsername).toBe('nikolai');
   });
 
   it('throws when a required variable is missing', () => {
-    delete process.env.BOT_TOKEN;
-    expect(() => loadConfig()).toThrow('Missing required environment variable: BOT_TOKEN');
+    delete process.env.DATABASE_URL;
+    expect(() => loadConfig()).toThrow('Missing required environment variable: DATABASE_URL');
   });
 });

@@ -1,16 +1,37 @@
 # Forex Signal Mini App
 
-## Настройка бота (один раз, через @BotFather)
+Telegram Mini App: пользователь загружает скриншот графика, Claude Sonnet 5 анализирует его и выдаёт торговый
+сигнал (направление, вход, стоп-лосс, 3 тейк-профита). Один бесплатный сигнал на пользователя, дальше — переход
+по диплинку в личку.
 
-1. `/newbot` — создать бота, сохранить токен в `BOT_TOKEN`.
-2. Задеплоить приложение на любой HTTPS-хостинг (Mini App URL обязан быть https). Записать этот URL в `APP_URL`.
-3. Узнать свой numeric Telegram ID (например через @userinfobot) и записать в `OWNER_TELEGRAM_ID`.
-4. Записать username бота Николая (без `@`) в `NIKOLAI_BOT_USERNAME`.
-5. Скопировать `.env.example` в `.env` и заполнить все поля.
+## Переменные окружения
 
-Открытие Mini App происходит через кнопки, которые бот присылает на команды `/start` (обычный анализатор) и
-`/admin` (админ-панель, только для админов) — см. `src/telegram/bot.ts`. Отдельно настраивать Menu Button в
-BotFather не обязательно.
+| Переменная | Обязательна | Описание |
+|---|---|---|
+| `BOT_TOKEN` | да | Токен бота от @BotFather |
+| `ANTHROPIC_API_KEY` | да | Ключ Anthropic API |
+| `OWNER_TELEGRAM_ID` | да | Ваш numeric Telegram ID (владелец, может назначать админов) |
+| `DATABASE_URL` | да | Строка подключения PostgreSQL |
+| `NIKOLAI_USERNAME` | да | Username для диплинка (с `@` или без) |
+| `APP_URL` | да | Публичный HTTPS-URL приложения |
+| `DATABASE_SSL` | нет | `true`, если Postgres требует SSL (частый случай у облачных БД) |
+| `PORT` | нет | По умолчанию `3000` |
+| `SKIP_BOT_POLLING` | нет | `true` — не запускать поллинг бота |
+
+## Настройка (один раз)
+
+1. Создать бота через @BotFather, сохранить токен в `BOT_TOKEN`.
+2. Задеплоить приложение на HTTPS-хостинг, записать выданный URL в `APP_URL`.
+3. Написать боту `/id` — он ответит вашим Telegram ID. Записать его в `OWNER_TELEGRAM_ID` и передеплоить.
+4. Заполнить `NIKOLAI_USERNAME`, `DATABASE_URL` и `ANTHROPIC_API_KEY`.
+
+Схема БД создаётся автоматически при старте (`CREATE TABLE IF NOT EXISTS`) — миграции запускать не нужно.
+
+## Команды бота
+
+- `/start` — кнопка запуска анализатора
+- `/id` — узнать свой Telegram ID
+- `/admin` — кнопка админ-панели (только для админов)
 
 ## Разработка
 
@@ -19,9 +40,9 @@ npm install
 npm run dev
 ```
 
-Для локальной проверки внутри Telegram нужен публичный HTTPS-туннель (например `cloudflared tunnel --url
-http://localhost:3000`), потому что Telegram не открывает `http://` или `localhost` как Mini App. Укажите
-URL туннеля в `APP_URL`.
+Для проверки внутри Telegram нужен публичный HTTPS-туннель (например `cloudflared tunnel --url
+http://localhost:3000`) — Telegram не открывает `http://` или `localhost` как Mini App. URL туннеля указать в
+`APP_URL`.
 
 ## Тесты
 
@@ -29,12 +50,11 @@ URL туннеля в `APP_URL`.
 npm test
 ```
 
+Тесты используют `pg-mem` (Postgres в памяти) — реальная БД для их запуска не нужна.
+
 ## Продакшн
 
 ```bash
 docker build -t forex-signal-miniapp .
-docker run --env-file .env -p 3000:3000 -v $(pwd)/data:/app/data forex-signal-miniapp
+docker run --env-file .env -p 3000:3000 forex-signal-miniapp
 ```
-
-Смонтируйте `/app/data` как volume, чтобы файл SQLite (`DB_PATH`) переживал перезапуск контейнера. Укажите
-`DB_PATH=/app/data/data.sqlite` в `.env`, чтобы файл попадал в примонтированный volume.

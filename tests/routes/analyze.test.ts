@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import crypto from 'node:crypto';
-import { createDb } from '../../src/db/db.js';
+import { createTestDb } from '../helpers/testDb.js';
 import { UsersRepo } from '../../src/db/users.repo.js';
 import { createAuthMiddleware } from '../../src/middleware/auth.js';
 import { createAnalyzeHandler } from '../../src/routes/analyze.js';
@@ -46,8 +46,8 @@ const SAMPLE_SIGNAL = {
 
 let usersRepo: UsersRepo;
 
-beforeEach(() => {
-  usersRepo = new UsersRepo(createDb(':memory:'));
+beforeEach(async () => {
+  usersRepo = new UsersRepo(await createTestDb());
 });
 
 describe('POST /api/analyze', () => {
@@ -60,7 +60,7 @@ describe('POST /api/analyze', () => {
     expect(response.status).toBe(200);
     expect(response.body.signal.trend).toBe('bullish');
     expect(typeof response.body.balance).toBe('number');
-    expect(usersRepo.getOrCreate(1).freeRunUsed).toBe(true);
+    expect((await usersRepo.getOrCreate(1)).freeRunUsed).toBe(true);
   });
 
   it('returns 403 ALREADY_USED on the second attempt', async () => {
@@ -80,7 +80,7 @@ describe('POST /api/analyze', () => {
   });
 
   it('allows repeated use when unlimited_access is set', async () => {
-    usersRepo.setUnlimited(3, true);
+    await usersRepo.setUnlimited(3, true);
     const app = buildApp(usersRepo, SAMPLE_SIGNAL);
     await request(app)
       .post('/api/analyze')
@@ -96,7 +96,7 @@ describe('POST /api/analyze', () => {
   });
 
   it('uses balanceOverride instead of a random balance when set', async () => {
-    usersRepo.setBalanceOverride(4, 9999);
+    await usersRepo.setBalanceOverride(4, 9999);
     const response = await request(buildApp(usersRepo, SAMPLE_SIGNAL))
       .post('/api/analyze')
       .set('X-Telegram-Init-Data', buildInitData(4))

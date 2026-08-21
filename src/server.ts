@@ -1,43 +1,31 @@
 import 'dotenv/config';
-import express from 'express';
-import path from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadConfig } from './config.js';
-import { createDb } from './db/db.js';
+import { createPool, initSchema } from './db/db.js';
 import { UsersRepo } from './db/users.repo.js';
 import { AdminsRepo } from './db/admins.repo.js';
-import { createAuthMiddleware } from './middleware/auth.js';
-import { createRequireAdminMiddleware } from './middleware/requireAdmin.js';
-import { createConfigHandler } from './routes/config.js';
-import { createMeHandler } from './routes/me.js';
-import { createAnalyzeHandler } from './routes/analyze.js';
-import { createAdminRouter } from './routes/admin.js';
+import { buildApp } from './app.js';
 import { createBotPoller } from './telegram/bot.js';
 
-const config = loadConfig();
-const db = createDb(config.dbPath);
-const usersRepo = new UsersRepo(db);
-const adminsRepo = new AdminsRepo(db);
-adminsRepo.add(config.ownerTelegramId, null);
+async function main(): Promise<void> {
+  const config = loadConfig();
 
-const claude = new Anthropic({ apiKey: config.anthropicApiKey });
-const authMiddleware = createAuthMiddleware(config.botToken);
-const requireAdmin = createRequireAdminMiddleware(adminsRepo);
-const nikolaiBotUrl = `https://t.me/${config.nikolaiBotUsername}`;
+  const pool = createPool(config.databaseUrl, config.databaseSsl);
+  await initSchema(pool);
 
-const app = express();
-app.use(express.json({ limit: '15mb' }));
-app.use(express.static(path.join(process.cwd(), 'public')));
+  const usersRepo = new UsersRepo(pool);
+  const adminsRepo = new AdminsRepo(pool);
+  await adminsRepo.add(config.ownerTelegramId, null);
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
-});
-app.get('/api/config', createConfigHandler(nikolaiBotUrl));
-app.get('/api/me', authMiddleware, createMeHandler(usersRepo));
-app.post('/api/analyze', authMiddleware, createAnalyzeHandler(usersRepo, claude));
-app.use('/api/admin', authMiddleware, requireAdmin, createAdminRouter(usersRepo, adminsRepo, config.ownerTelegramId));
+  const app = buildApp({
+    usersRepo,
+    adminsRepo,
+    claude: new Anthropic({ apiKey: config.anthropicApiKey }),
+    botToken: config.botToken,
+    ownerTelegramId: config.ownerTelegramId,
+    nikolaiUrl: `https://t.me/${config.nikolaiUsername}`,
+  });
 
-if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
   app.listen(config.port, () => {
     console.log(`Server listening on port ${config.port}`);
   });
@@ -47,4 +35,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
   }
 }
 
-export { app };
+main().catch((err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});

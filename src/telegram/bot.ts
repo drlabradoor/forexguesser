@@ -3,7 +3,7 @@ import { createTelegramApi, type TelegramUpdate } from './api.js';
 
 export interface BotDeps {
   sendMessage: (chatId: number, text: string, replyMarkup?: unknown) => Promise<unknown>;
-  isAdmin: (telegramId: number) => boolean;
+  isAdmin: (telegramId: number) => Promise<boolean>;
   appUrl: string;
 }
 
@@ -26,7 +26,7 @@ export async function routeUpdate(update: TelegramUpdate, deps: BotDeps): Promis
   } else if (message.text.startsWith('/id')) {
     await deps.sendMessage(chatId, `Твой Telegram ID: ${fromId}`);
   } else if (message.text.startsWith('/admin')) {
-    if (deps.isAdmin(fromId)) {
+    if (await deps.isAdmin(fromId)) {
       await deps.sendMessage(chatId, 'Админ-панель:', webAppButton('Открыть админку', `${deps.appUrl}/admin.html`));
     }
   }

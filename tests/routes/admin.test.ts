@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import crypto from 'node:crypto';
-import { createDb } from '../../src/db/db.js';
+import { createTestDb } from '../helpers/testDb.js';
 import { UsersRepo } from '../../src/db/users.repo.js';
 import { AdminsRepo } from '../../src/db/admins.repo.js';
 import { createAuthMiddleware } from '../../src/middleware/auth.js';
@@ -29,11 +29,11 @@ let usersRepo: UsersRepo;
 let adminsRepo: AdminsRepo;
 let app: express.Express;
 
-beforeEach(() => {
-  const db = createDb(':memory:');
+beforeEach(async () => {
+  const db = await createTestDb();
   usersRepo = new UsersRepo(db);
   adminsRepo = new AdminsRepo(db);
-  adminsRepo.add(OWNER_ID, null);
+  await adminsRepo.add(OWNER_ID, null);
 
   app = express();
   app.use(express.json());
@@ -52,7 +52,7 @@ describe('admin routes', () => {
   });
 
   it('lists users for an admin', async () => {
-    usersRepo.getOrCreate(1);
+    await usersRepo.getOrCreate(1);
     const response = await request(app).get('/api/admin/users').set('X-Telegram-Init-Data', buildInitData(OWNER_ID));
     expect(response.status).toBe(200);
     expect(response.body.users).toHaveLength(1);
@@ -64,7 +64,7 @@ describe('admin routes', () => {
       .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
       .send({ value: 4242 });
     expect(response.status).toBe(200);
-    expect(usersRepo.getOrCreate(1).balanceOverride).toBe(4242);
+    expect((await usersRepo.getOrCreate(1)).balanceOverride).toBe(4242);
   });
 
   it('toggles unlimited access', async () => {
@@ -72,13 +72,13 @@ describe('admin routes', () => {
       .post('/api/admin/users/1/unlimited')
       .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
       .send({ enabled: true });
-    expect(usersRepo.getOrCreate(1).unlimitedAccess).toBe(true);
+    expect((await usersRepo.getOrCreate(1)).unlimitedAccess).toBe(true);
   });
 
   it('resets the free run flag', async () => {
-    usersRepo.markRunUsed(1);
+    await usersRepo.markRunUsed(1);
     await request(app).post('/api/admin/users/1/reset').set('X-Telegram-Init-Data', buildInitData(OWNER_ID));
-    expect(usersRepo.getOrCreate(1).freeRunUsed).toBe(false);
+    expect((await usersRepo.getOrCreate(1)).freeRunUsed).toBe(false);
   });
 
   it('lets the owner add a new admin', async () => {
@@ -87,16 +87,16 @@ describe('admin routes', () => {
       .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
       .send({ telegramId: 55 });
     expect(response.status).toBe(200);
-    expect(adminsRepo.isAdmin(55)).toBe(true);
+    expect(await adminsRepo.isAdmin(55)).toBe(true);
   });
 
   it('forbids a non-owner admin from adding a new admin', async () => {
-    adminsRepo.add(2, OWNER_ID);
+    await adminsRepo.add(2, OWNER_ID);
     const response = await request(app)
       .post('/api/admin/admins')
       .set('X-Telegram-Init-Data', buildInitData(2))
       .send({ telegramId: 55 });
     expect(response.status).toBe(403);
-    expect(adminsRepo.isAdmin(55)).toBe(false);
+    expect(await adminsRepo.isAdmin(55)).toBe(false);
   });
 });
