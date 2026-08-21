@@ -23,6 +23,8 @@ export async function routeUpdate(update: TelegramUpdate, deps: BotDeps): Promis
       'Загрузи скриншот графика — получишь торговый сигнал.',
       webAppButton('Открыть анализатор', deps.appUrl)
     );
+  } else if (message.text.startsWith('/id')) {
+    await deps.sendMessage(chatId, `Твой Telegram ID: ${fromId}`);
   } else if (message.text.startsWith('/admin')) {
     if (deps.isAdmin(fromId)) {
       await deps.sendMessage(chatId, 'Админ-панель:', webAppButton('Открыть админку', `${deps.appUrl}/admin.html`));

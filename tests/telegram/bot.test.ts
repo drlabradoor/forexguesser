@@ -36,6 +36,16 @@ describe('routeUpdate', () => {
     });
   });
 
+  it('replies with the sender Telegram ID on /id', async () => {
+    const sendMessage = vi.fn().mockResolvedValue({});
+    const deps = { sendMessage, isAdmin: () => false, appUrl: 'https://example.com' };
+    const update = { update_id: 5, message: { chat: { id: 777 }, from: { id: 777 }, text: '/id' } };
+
+    await routeUpdate(update, deps);
+
+    expect(sendMessage).toHaveBeenCalledWith(777, 'Твой Telegram ID: 777');
+  });
+
   it('ignores updates without a text message', async () => {
     const sendMessage = vi.fn();
     const deps = { sendMessage, isAdmin: () => true, appUrl: 'https://example.com' };
