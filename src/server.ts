@@ -6,6 +6,7 @@ import { UsersRepo } from './db/users.repo.js';
 import { AdminsRepo } from './db/admins.repo.js';
 import { buildApp } from './app.js';
 import { createBotPoller } from './telegram/bot.js';
+import { buildTargetUrl } from './telegram/deeplink.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -23,7 +24,7 @@ async function main(): Promise<void> {
     claude: new Anthropic({ apiKey: config.anthropicApiKey }),
     botToken: config.botToken,
     ownerTelegramId: config.ownerTelegramId,
-    targetUrl: `https://t.me/${config.targetUsername}`,
+    targetUrl: buildTargetUrl(config.targetUsername),
     freeRunLimitEnabled: config.freeRunLimitEnabled,
   });
 
