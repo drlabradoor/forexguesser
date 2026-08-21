@@ -1,6 +1,6 @@
 import { state, setState } from '../state.js';
 import { icons } from '../icons.js';
-import { formatBalance, formatPrice, DEMO_BALANCE } from '../format.js';
+import { formatBalance, formatLevels, DEMO_BALANCE } from '../format.js';
 import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
 import { postAnalyze, ApiError } from '../api.js';
 import { startStatusRotation } from '../statuses.js';
@@ -193,13 +193,15 @@ function renderResult() {
   const signal = state.signal;
   const trend = TREND[signal.trend] ?? TREND.neutral;
 
-  const levels = [
-    ['Вход', signal.entryPrice],
-    ['Стоп-лосс', signal.stopLoss],
-    ['ТП1', signal.takeProfit1],
-    ['ТП2', signal.takeProfit2],
-    ['ТП3', signal.takeProfit3],
-  ];
+  const labels = ['Вход', 'Стоп-лосс', 'ТП1', 'ТП2', 'ТП3'];
+  const formatted = formatLevels([
+    signal.entryPrice,
+    signal.stopLoss,
+    signal.takeProfit1,
+    signal.takeProfit2,
+    signal.takeProfit3,
+  ]);
+  const levels = labels.map((label, index) => [label, formatted[index]]);
 
   const keyPoints = (signal.keyPoints ?? []).slice(0, MAX_KEY_POINTS);
 
@@ -223,7 +225,7 @@ function renderResult() {
           ([label, value]) => `
         <div class="level">
           <div class="level__label">${label}</div>
-          <div class="level__value">${formatPrice(value)}</div>
+          <div class="level__value">${value}</div>
         </div>`
         )
         .join('')}
