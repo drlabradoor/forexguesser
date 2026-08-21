@@ -143,6 +143,86 @@ body {
 .locked__subtitle { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--text-dim); max-width: 300px; }
 .locked .button--primary { max-width: 320px; }
 
+.screen { display: flex; flex-direction: column; gap: 14px; }
+
+.profile { display: flex; align-items: center; gap: 10px; }
+
+.profile__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profile__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.profile__name { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.profile__id { font-size: 12px; color: var(--text-mute); }
+
+.balance {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px 16px 16px;
+}
+
+.balance__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.balance__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.balance__label svg { width: 13px; height: 13px; }
+.balance__controls { display: flex; align-items: center; gap: 8px; }
+.balance__value { margin-top: 10px; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+
+.chips { display: flex; gap: 2px; background: var(--surface-2); border-radius: 999px; padding: 2px; }
+
+.chip {
+  font: inherit;
+  font-size: 11px;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.chip.is-active { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.chip--real.is-active { background: var(--success); color: #0D0E10; font-weight: 600; }
+
+.icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-button svg { width: 15px; height: 15px; }
+
 /* Admin panel (admin.html).
    Scoped to the admin markup on purpose: a bare `button` rule here would
    leak its margin and padding into the mini app's tab bar and chips. */
