@@ -44,15 +44,20 @@ npm run dev
 http://localhost:3000`) — Telegram не открывает `http://` или `localhost` как Mini App. URL туннеля указать в
 `APP_URL`.
 
-## Тесты
+## Тесты и типы
 
 ```bash
-npm test
+npm test        # vitest, использует pg-mem — реальная БД не нужна
+npm run typecheck   # tsc --noEmit
 ```
 
-Тесты используют `pg-mem` (Postgres в памяти) — реальная БД для их запуска не нужна.
-
 ## Продакшн
+
+Шага сборки нет: `npm start` запускает `tsx src/server.ts`, который срезает типы на лету. Это сделано намеренно —
+хостинги обычно ставят только production-зависимости (`npm ci --omit=dev`), где нет ни `typescript`, ни `@types/*`,
+поэтому компиляция на сервере невозможна. Проверка типов живёт в `npm run typecheck` (локально и в CI).
+
+Требования к платформе: `npm ci --omit=dev` + `npm start`, ничего больше.
 
 ```bash
 docker build -t forex-signal-miniapp .
