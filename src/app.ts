@@ -17,6 +17,7 @@ export interface AppDeps {
   botToken: string;
   ownerTelegramId: number;
   targetUrl: string;
+  freeRunLimitEnabled: boolean;
 }
 
 export function buildApp(deps: AppDeps): express.Express {
@@ -32,7 +33,11 @@ export function buildApp(deps: AppDeps): express.Express {
   });
   app.get('/api/config', createConfigHandler(deps.targetUrl));
   app.get('/api/me', authMiddleware, createMeHandler(deps.usersRepo));
-  app.post('/api/analyze', authMiddleware, createAnalyzeHandler(deps.usersRepo, deps.claude));
+  app.post(
+    '/api/analyze',
+    authMiddleware,
+    createAnalyzeHandler(deps.usersRepo, deps.claude, deps.freeRunLimitEnabled)
+  );
   app.use(
     '/api/admin',
     authMiddleware,

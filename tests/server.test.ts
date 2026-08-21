@@ -17,6 +17,7 @@ beforeEach(async () => {
     botToken: 'test-bot-token',
     ownerTelegramId: 1,
     targetUrl: 'https://t.me/targetuser',
+    freeRunLimitEnabled: true,
   });
 });
 

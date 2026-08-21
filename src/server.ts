@@ -24,6 +24,7 @@ async function main(): Promise<void> {
     botToken: config.botToken,
     ownerTelegramId: config.ownerTelegramId,
     targetUrl: `https://t.me/${config.targetUsername}`,
+    freeRunLimitEnabled: config.freeRunLimitEnabled,
   });
 
   // Bind 0.0.0.0 explicitly: hosting platforms route to the container's
