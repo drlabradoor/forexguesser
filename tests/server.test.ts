@@ -16,7 +16,7 @@ beforeEach(async () => {
     claude: { messages: { create: vi.fn() } } as any,
     botToken: 'test-bot-token',
     ownerTelegramId: 1,
-    nikolaiUrl: 'https://t.me/nikolai',
+    targetUrl: 'https://t.me/targetuser',
   });
 });
 
@@ -32,7 +32,7 @@ describe('full app wiring', () => {
   it('serves /api/config publicly', async () => {
     const response = await request(app).get('/api/config');
     expect(response.status).toBe(200);
-    expect(response.body.nikolaiUrl).toBe('https://t.me/nikolai');
+    expect(response.body.targetUrl).toBe('https://t.me/targetuser');
   });
 
   it('rejects /api/me without initData', async () => {

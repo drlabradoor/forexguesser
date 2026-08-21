@@ -6,7 +6,7 @@ const REQUIRED_ENV = {
   ANTHROPIC_API_KEY: 'anthropic-key',
   OWNER_TELEGRAM_ID: '123',
   DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
-  NIKOLAI_USERNAME: 'nikolai',
+  TARGET_USERNAME: 'targetuser',
   APP_URL: 'https://example.com',
 };
 
@@ -26,14 +26,14 @@ describe('loadConfig', () => {
     expect(config.botToken).toBe('bot-token');
     expect(config.ownerTelegramId).toBe(123);
     expect(config.databaseUrl).toBe('postgres://user:pass@localhost:5432/db');
-    expect(config.nikolaiUsername).toBe('nikolai');
+    expect(config.targetUsername).toBe('targetuser');
     expect(config.appUrl).toBe('https://example.com');
     expect(config.port).toBe(3000);
   });
 
-  it('strips a leading @ from NIKOLAI_USERNAME', () => {
-    process.env.NIKOLAI_USERNAME = '@nikolai';
-    expect(loadConfig().nikolaiUsername).toBe('nikolai');
+  it('strips a leading @ from TARGET_USERNAME', () => {
+    process.env.TARGET_USERNAME = '@targetuser';
+    expect(loadConfig().targetUsername).toBe('targetuser');
   });
 
   it('throws when a required variable is missing', () => {

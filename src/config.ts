@@ -5,7 +5,7 @@ export interface Config {
   ownerTelegramId: number;
   databaseUrl: string;
   databaseSsl: boolean;
-  nikolaiUsername: string;
+  targetUsername: string;
   appUrl: string;
   skipBotPolling: boolean;
 }
@@ -15,7 +15,7 @@ const REQUIRED_KEYS = [
   'ANTHROPIC_API_KEY',
   'OWNER_TELEGRAM_ID',
   'DATABASE_URL',
-  'NIKOLAI_USERNAME',
+  'TARGET_USERNAME',
   'APP_URL',
 ];
 
@@ -32,7 +32,7 @@ export function loadConfig(): Config {
     ownerTelegramId: Number(process.env.OWNER_TELEGRAM_ID),
     databaseUrl: process.env.DATABASE_URL!,
     databaseSsl: process.env.DATABASE_SSL === 'true',
-    nikolaiUsername: process.env.NIKOLAI_USERNAME!.replace(/^@/, ''),
+    targetUsername: process.env.TARGET_USERNAME!.replace(/^@/, ''),
     appUrl: process.env.APP_URL!,
     skipBotPolling: process.env.SKIP_BOT_POLLING === 'true',
   };

@@ -23,7 +23,7 @@ async function main(): Promise<void> {
     claude: new Anthropic({ apiKey: config.anthropicApiKey }),
     botToken: config.botToken,
     ownerTelegramId: config.ownerTelegramId,
-    nikolaiUrl: `https://t.me/${config.nikolaiUsername}`,
+    targetUrl: `https://t.me/${config.targetUsername}`,
   });
 
   app.listen(config.port, () => {

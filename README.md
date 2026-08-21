@@ -12,7 +12,7 @@ Telegram Mini App: пользователь загружает скриншот 
 | `ANTHROPIC_API_KEY` | да | Ключ Anthropic API |
 | `OWNER_TELEGRAM_ID` | да | Ваш numeric Telegram ID (владелец, может назначать админов) |
 | `DATABASE_URL` | да | Строка подключения PostgreSQL |
-| `NIKOLAI_USERNAME` | да | Username для диплинка (с `@` или без) |
+| `TARGET_USERNAME` | да | Username для диплинка (с `@` или без) |
 | `APP_URL` | да | Публичный HTTPS-URL приложения |
 | `DATABASE_SSL` | нет | `true`, если Postgres требует SSL (частый случай у облачных БД) |
 | `PORT` | нет | По умолчанию `3000` |
@@ -23,7 +23,7 @@ Telegram Mini App: пользователь загружает скриншот 
 1. Создать бота через @BotFather, сохранить токен в `BOT_TOKEN`.
 2. Задеплоить приложение на HTTPS-хостинг, записать выданный URL в `APP_URL`.
 3. Написать боту `/id` — он ответит вашим Telegram ID. Записать его в `OWNER_TELEGRAM_ID` и передеплоить.
-4. Заполнить `NIKOLAI_USERNAME`, `DATABASE_URL` и `ANTHROPIC_API_KEY`.
+4. Заполнить `TARGET_USERNAME`, `DATABASE_URL` и `ANTHROPIC_API_KEY`.
 
 Схема БД создаётся автоматически при старте (`CREATE TABLE IF NOT EXISTS`) — миграции запускать не нужно.
 

@@ -16,7 +16,7 @@ export interface AppDeps {
   claude: Anthropic;
   botToken: string;
   ownerTelegramId: number;
-  nikolaiUrl: string;
+  targetUrl: string;
 }
 
 export function buildApp(deps: AppDeps): express.Express {
@@ -30,7 +30,7 @@ export function buildApp(deps: AppDeps): express.Express {
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
   });
-  app.get('/api/config', createConfigHandler(deps.nikolaiUrl));
+  app.get('/api/config', createConfigHandler(deps.targetUrl));
   app.get('/api/me', authMiddleware, createMeHandler(deps.usersRepo));
   app.post('/api/analyze', authMiddleware, createAnalyzeHandler(deps.usersRepo, deps.claude));
   app.use(
