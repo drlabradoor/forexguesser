@@ -28,11 +28,13 @@ CREATE TABLE IF NOT EXISTS admins (
 );
 `;
 
-export function createPool(connectionString: string, useSsl: boolean): pg.Pool {
-  return new pg.Pool({
-    connectionString,
-    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
-  });
+/**
+ * TLS is driven entirely by the connection string: no `sslmode` means a plain
+ * connection (what Bothost's internal Postgres serves), while an external
+ * database that requires TLS is opted in with `?sslmode=require` in the URL.
+ */
+export function createPool(connectionString: string): pg.Pool {
+  return new pg.Pool({ connectionString });
 }
 
 export async function initSchema(db: Queryable): Promise<void> {

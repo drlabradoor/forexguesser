@@ -11,10 +11,9 @@ Telegram Mini App: пользователь загружает скриншот 
 | `BOT_TOKEN` | да | Токен бота от @BotFather |
 | `ANTHROPIC_API_KEY` | да | Ключ Anthropic API |
 | `OWNER_TELEGRAM_ID` | да | Ваш numeric Telegram ID (владелец, может назначать админов) |
-| `DATABASE_URL` | да | Строка подключения PostgreSQL |
+| `DATABASE_URL` | да | Строка подключения PostgreSQL. TLS задаётся в самом URL: `?sslmode=require` для баз, которые его требуют; без параметра соединение идёт без шифрования |
 | `TARGET_USERNAME` | да | Username для диплинка (с `@` или без) |
 | `APP_URL` | да | Публичный HTTPS-URL приложения |
-| `DATABASE_SSL` | нет | `true`, если Postgres требует SSL (частый случай у облачных БД) |
 | `PORT` | нет | По умолчанию `3000` |
 | `SKIP_BOT_POLLING` | нет | `true` — не запускать поллинг бота |
 
@@ -71,7 +70,8 @@ npm run typecheck   # tsc --noEmit
   любые артефакты, положенные туда на этапе build, затираются. Приложение запускается прямо из `src/` через `tsx`.
 - **Кастомный Dockerfile не нужен** — галку «Use custom Dockerfile» включать не требуется. Лежащий в репозитории
   `Dockerfile` предназначен для других хостингов.
-- **База данных** — внутренний PostgreSQL Bothost работает без TLS, поэтому `DATABASE_SSL=false`.
+- **База данных** — внутренний PostgreSQL Bothost работает без TLS, поэтому `DATABASE_URL` указывается без
+  `sslmode`. Отдельной переменной для SSL нет.
 - **Ветка** — `main`.
 
 ```bash

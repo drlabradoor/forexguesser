@@ -4,7 +4,6 @@ export interface Config {
   anthropicApiKey: string;
   ownerTelegramId: number;
   databaseUrl: string;
-  databaseSsl: boolean;
   targetUsername: string;
   appUrl: string;
   skipBotPolling: boolean;
@@ -31,7 +30,6 @@ export function loadConfig(): Config {
     anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
     ownerTelegramId: Number(process.env.OWNER_TELEGRAM_ID),
     databaseUrl: process.env.DATABASE_URL!,
-    databaseSsl: process.env.DATABASE_SSL === 'true',
     targetUsername: process.env.TARGET_USERNAME!.replace(/^@/, ''),
     appUrl: process.env.APP_URL!,
     skipBotPolling: process.env.SKIP_BOT_POLLING === 'true',

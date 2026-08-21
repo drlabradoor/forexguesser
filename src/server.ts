@@ -10,7 +10,7 @@ import { createBotPoller } from './telegram/bot.js';
 async function main(): Promise<void> {
   const config = loadConfig();
 
-  const pool = createPool(config.databaseUrl, config.databaseSsl);
+  const pool = createPool(config.databaseUrl);
   await initSchema(pool);
 
   const usersRepo = new UsersRepo(pool);
