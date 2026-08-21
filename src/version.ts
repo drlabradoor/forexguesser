@@ -59,7 +59,10 @@ export function readCommitFromGitDir(root: string): string | null {
 }
 
 function resolveCommit(root: string): { commit: string | null; commitSource: CommitSource } {
-  const injected = process.env.COMMIT_SHA ?? process.env.GIT_COMMIT;
+  // GIT_SHA and APP_VERSION are the names the sibling bots already use in the
+  // Bothost panel, so an operator setting one by habit gets a working value.
+  const injected =
+    process.env.COMMIT_SHA ?? process.env.GIT_COMMIT ?? process.env.GIT_SHA ?? process.env.APP_VERSION;
   if (injected?.trim()) {
     return { commit: injected.trim().slice(0, SHORT_SHA_LENGTH), commitSource: 'env' };
   }
