@@ -30,16 +30,38 @@ function currentBalance() {
   return state.balanceMode === 'demo' ? DEMO_BALANCE : state.balance;
 }
 
-function animateBalance(el, target) {
+// What each account last showed on screen. The card is rebuilt on every
+// setState, so without this the count-up replayed on every unrelated render
+// -- picking a file, switching tabs, an error -- and the digits never sat
+// still.
+const shownBalances = { real: null, demo: null };
+
+function animateBalance(el, from, to) {
   const duration = 800;
   const start = performance.now();
+  el.textContent = formatBalance(from);
   function frame(now) {
     const progress = Math.min(1, (now - start) / duration);
     const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = formatBalance(target * eased);
+    el.textContent = formatBalance(from + (to - from) * eased);
     if (progress < 1) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+}
+
+/** Counts up on the first sight of an account and whenever the number has
+ *  actually grown; every other render just prints it. */
+function paintBalance(el, mode, target) {
+  const previous = shownBalances[mode];
+  shownBalances[mode] = target;
+
+  if (previous === null) {
+    animateBalance(el, 0, target);
+  } else if (target > previous) {
+    animateBalance(el, previous, target);
+  } else {
+    el.textContent = formatBalance(target);
+  }
 }
 
 function renderBalance() {
@@ -57,11 +79,11 @@ function renderBalance() {
         <button class="icon-button" data-action="refresh-balance">${icons.refresh}</button>
       </div>
     </div>
-    <div class="balance__value">0,00 $</div>
+    <div class="balance__value"></div>
   `;
 
   const value = card.querySelector('.balance__value');
-  animateBalance(value, currentBalance());
+  paintBalance(value, state.balanceMode, currentBalance());
 
   card.addEventListener('click', (event) => {
     const chip = event.target.closest('[data-mode]');
@@ -72,7 +94,9 @@ function renderBalance() {
       return;
     }
     if (event.target.closest('[data-action="refresh-balance"]')) {
-      animateBalance(value, currentBalance());
+      // Deliberate replay: the user pressed it, so it is not the automatic
+      // re-animation that made the digits restless.
+      animateBalance(value, 0, currentBalance());
     }
   });
 
