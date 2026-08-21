@@ -33,7 +33,10 @@ async function loadVersion() {
     const response = await apiFetch('/api/admin/version');
     if (!response.ok) throw new Error(String(response.status));
     const info = await response.json();
-    const commit = info.commit ?? 'коммит неизвестен';
+    const sources = { env: 'env', 'git-dir': '.git', 'git-cli': 'git' };
+    const commit = info.commit
+      ? `${info.commit} (${sources[info.commitSource] ?? '?'})`
+      : 'коммит неизвестен';
     el.textContent = `v${info.version} · ${commit} · запущен ${formatStarted(info.startedAt)}`;
   } catch {
     el.textContent = 'версия недоступна';

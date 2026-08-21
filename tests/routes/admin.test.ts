@@ -11,7 +11,12 @@ import { createAdminRouter } from '../../src/routes/admin.js';
 
 const BOT_TOKEN = 'test-bot-token';
 const OWNER_ID = 100;
-const VERSION_INFO = { version: '0.1.0', commit: '377d250', startedAt: '2026-08-21T13:30:00.000Z' };
+const VERSION_INFO = {
+  version: '0.1.0',
+  commit: '377d250',
+  commitSource: 'git-dir' as const,
+  startedAt: '2026-08-21T13:30:00.000Z',
+};
 
 function buildInitData(telegramId: number): string {
   const fields = {

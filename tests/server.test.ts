@@ -18,7 +18,12 @@ beforeEach(async () => {
     ownerTelegramId: 1,
     targetUrl: 'https://t.me/targetuser',
     freeRunLimitEnabled: true,
-    versionInfo: { version: '0.1.0', commit: '377d250', startedAt: '2026-08-21T13:30:00.000Z' },
+    versionInfo: {
+      version: '0.1.0',
+      commit: '377d250',
+      commitSource: 'git-dir' as const,
+      startedAt: '2026-08-21T13:30:00.000Z',
+    },
   });
 });
 

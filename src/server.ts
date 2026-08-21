@@ -12,7 +12,18 @@ import { collectVersionInfo } from './version.js';
 async function main(): Promise<void> {
   const config = loadConfig();
   const versionInfo = collectVersionInfo();
-  console.log(`Version ${versionInfo.version}, commit ${versionInfo.commit ?? 'unknown'}`);
+  console.log(
+    `Version ${versionInfo.version}, commit ${versionInfo.commit ?? 'unknown'} (source: ${versionInfo.commitSource ?? 'none'})`
+  );
+  if (!versionInfo.commit) {
+    // Names only, never values: this runs in the platform's log panel and the
+    // point is to spot a commit the host injects under a name we do not read.
+    const candidates = Object.keys(process.env).filter((key) => /COMMIT|SHA|GIT|REVISION/i.test(key));
+    console.log(
+      `No commit resolved (no .git in ${process.cwd()}, no git binary). ` +
+        `Env vars that might carry one: ${candidates.join(', ') || 'none'}`
+    );
+  }
 
   const pool = createPool(config.databaseUrl);
   await initSchema(pool);
