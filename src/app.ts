@@ -8,6 +8,7 @@ import { createAuthMiddleware } from './middleware/auth.js';
 import { createRequireAdminMiddleware } from './middleware/requireAdmin.js';
 import { createConfigHandler } from './routes/config.js';
 import { createMeHandler } from './routes/me.js';
+import { createSignalsHandler } from './routes/signals.js';
 import { createAnalyzeHandler } from './routes/analyze.js';
 import { createAdminRouter } from './routes/admin.js';
 import type { VersionInfo } from './version.js';
@@ -36,6 +37,7 @@ export function buildApp(deps: AppDeps): express.Express {
   });
   app.get('/api/config', createConfigHandler(deps.targetUrl));
   app.get('/api/me', authMiddleware, createMeHandler(deps.usersRepo));
+  app.get('/api/signals', authMiddleware, createSignalsHandler(deps.usersRepo, deps.signalsRepo));
   app.post('/api/analyze', authMiddleware, createAnalyzeHandler(deps.usersRepo, deps.signalsRepo, deps.claude));
   app.use(
     '/api/admin',
