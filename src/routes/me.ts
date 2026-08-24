@@ -7,12 +7,15 @@ export function createMeHandler(usersRepo: UsersRepo) {
       const telegramUser = req.telegramUser!;
       const user = await usersRepo.getOrCreate(telegramUser.id);
       res.json({
-        alreadyUsed: user.freeRunUsed && !user.unlimitedAccess,
         user: {
           telegramId: telegramUser.id,
           firstName: telegramUser.firstName,
           photoUrl: telegramUser.photoUrl ?? null,
         },
+        hasAccess: user.unlimitedAccess,
+        // Клиенту нужно знать не «потрачен ли прогон», а можно ли жать кнопку:
+        // иначе отказ стоил бы пользователю выгрузки мегабайта на мобильной связи.
+        teaserUsed: user.freeRunUsed,
       });
     } catch (err) {
       next(err);

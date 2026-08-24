@@ -32,13 +32,14 @@ beforeEach(async () => {
 });
 
 describe('GET /api/me', () => {
-  it('returns the profile and alreadyUsed=false for a new user', async () => {
+  it('returns the profile with no access and an unspent teaser for a new user', async () => {
     const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', buildInitData(10));
 
     expect(response.status).toBe(200);
-    expect(response.body.alreadyUsed).toBe(false);
     expect(response.body.user).toEqual({ telegramId: 10, firstName: 'Max', photoUrl: null });
-    expect(response.body.balance).toBeUndefined();
+    expect(response.body.hasAccess).toBe(false);
+    expect(response.body.teaserUsed).toBe(false);
+    expect(response.body.alreadyUsed).toBeUndefined();
   });
 
   it('passes photo_url through as photoUrl', async () => {
@@ -48,18 +49,20 @@ describe('GET /api/me', () => {
     expect(response.body.user.photoUrl).toBe('https://t.me/i/userpic/320/x.jpg');
   });
 
-  it('reports alreadyUsed=true once the free run is spent', async () => {
+  it('reports a spent teaser', async () => {
     await usersRepo.markRunUsed(13);
     const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', buildInitData(13));
 
-    expect(response.body.alreadyUsed).toBe(true);
+    expect(response.body.teaserUsed).toBe(true);
+    expect(response.body.hasAccess).toBe(false);
   });
 
-  it('reports alreadyUsed=false for a spent run when unlimited access is granted', async () => {
+  it('reports access independently of the spent teaser', async () => {
     await usersRepo.markRunUsed(14);
     await usersRepo.setUnlimited(14, true);
     const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', buildInitData(14));
 
-    expect(response.body.alreadyUsed).toBe(false);
+    expect(response.body.hasAccess).toBe(true);
+    expect(response.body.teaserUsed).toBe(true);
   });
 });
