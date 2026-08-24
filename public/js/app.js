@@ -1,7 +1,7 @@
 import { state, setState, subscribe } from './state.js';
 import { icons } from './icons.js';
 import { getConfig, getMe } from './api.js';
-import { renderScreenshot } from './screens/screenshot.js';
+import { renderScreenshot, acceptFile } from './screens/screenshot.js';
 import { renderLocked } from './screens/locked.js';
 import { openAccessChat } from './cta.js';
 
@@ -61,8 +61,50 @@ document.getElementById('tabbar').addEventListener('click', (event) => {
   if (button) setState({ tab: button.dataset.tab });
 });
 
-document.getElementById('content').addEventListener('click', (event) => {
+const content = document.getElementById('content');
+
+content.addEventListener('click', (event) => {
   if (event.target.closest('[data-action="cta"]')) openAccessChat(state.targetUrl);
+});
+
+// Браузер по умолчанию открывает брошенный файл как страницу -- в вебвью это
+// уводит из приложения без возврата. Гасим на уровне документа, а принимаем
+// только внутри контента.
+document.addEventListener('dragover', (event) => event.preventDefault());
+document.addEventListener('drop', (event) => event.preventDefault());
+
+function setDragover(on) {
+  document.querySelector('.dropzone')?.classList.toggle('dropzone--dragover', on);
+}
+
+// Дроп ловит вся область контента, а не пунктирный прямоугольник: промахнуться
+// мышью легко, а «файл упал в никуда» -- худший исход.
+content.addEventListener('dragover', (event) => {
+  if (state.tab !== 'screenshot' || state.phase === 'analyzing') return;
+  event.preventDefault();
+  setDragover(true);
+});
+
+content.addEventListener('dragleave', (event) => {
+  if (event.relatedTarget && content.contains(event.relatedTarget)) return;
+  setDragover(false);
+});
+
+content.addEventListener('drop', (event) => {
+  if (state.tab !== 'screenshot') return;
+  event.preventDefault();
+  setDragover(false);
+  acceptFile(event.dataTransfer?.files?.[0]);
+});
+
+// Только на табе «Скриншот» и без автопереключения: вставка, телепортирующая
+// пользователя с заглушки на другой экран, -- фокус, а не функция.
+window.addEventListener('paste', (event) => {
+  if (state.tab !== 'screenshot') return;
+  const item = [...(event.clipboardData?.items ?? [])].find((entry) => entry.kind === 'file');
+  if (!item) return;
+  event.preventDefault();
+  acceptFile(item.getAsFile());
 });
 
 subscribe(render);

@@ -232,6 +232,11 @@ body {
 .dropzone--filled { display: flex; align-items: center; justify-content: center; padding: 14px; cursor: pointer; }
 .dropzone__preview { max-width: 55%; max-height: 260px; border-radius: 10px; display: block; }
 
+.dropzone--dragover {
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.08);
+}
+
 #file-input { display: none; }
 
 .analysis {

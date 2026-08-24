@@ -30,6 +30,25 @@ const DROPZONE_HINT =
   'В т.ч. с телефона: без логотипа, таймер учитывается. PNG, JPG, WebP до 5MB. ' +
   'На iPhone используйте скриншот, а не фото из галереи.';
 
+/**
+ * Единственная точка приёма файла: input, drop и вставка из буфера обмена
+ * ведут сюда, чтобы проверка формата и освобождение прежнего previewUrl не
+ * разъехались по трём копиям.
+ */
+export function acceptFile(file) {
+  if (!file) return;
+  if (state.phase === 'analyzing') return;
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    setState({
+      phase: 'error',
+      error: { title: 'Неподдерживаемый формат', text: 'Подойдут PNG, JPG или WebP.', action: 'retry' },
+    });
+    return;
+  }
+  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+  setState({ phase: 'selected', file, previewUrl: URL.createObjectURL(file), signal: null, error: null });
+}
+
 function renderDropzone() {
   const zone = document.createElement('section');
   zone.className = 'dropzone';
@@ -42,17 +61,7 @@ function renderDropzone() {
     <input type="file" id="file-input" accept="${ALLOWED_TYPES.join(',')}" />
   `;
   zone.querySelector('#file-input').addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setState({
-        phase: 'error',
-        error: { title: 'Неподдерживаемый формат', text: 'Подойдут PNG, JPG или WebP.', action: 'retry' },
-      });
-      return;
-    }
-    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-    setState({ phase: 'selected', file, previewUrl: URL.createObjectURL(file), signal: null, error: null });
+    acceptFile(event.target.files[0]);
   });
   return zone;
 }
