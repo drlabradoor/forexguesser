@@ -3,6 +3,7 @@ import request from 'supertest';
 import type express from 'express';
 import { createTestDb } from './helpers/testDb.js';
 import { UsersRepo } from '../src/db/users.repo.js';
+import { SignalsRepo } from '../src/db/signals.repo.js';
 import { AdminsRepo } from '../src/db/admins.repo.js';
 import { buildApp } from '../src/app.js';
 
@@ -17,7 +18,7 @@ beforeEach(async () => {
     botToken: 'test-bot-token',
     ownerTelegramId: 1,
     targetUrl: 'https://t.me/targetuser',
-    freeRunLimitEnabled: true,
+    signalsRepo: new SignalsRepo(db),
     versionInfo: {
       version: '0.1.0',
       commit: '377d250',

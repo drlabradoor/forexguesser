@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { UsersRepo } from './db/users.repo.js';
+import type { SignalsRepo } from './db/signals.repo.js';
 import type { AdminsRepo } from './db/admins.repo.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createRequireAdminMiddleware } from './middleware/requireAdmin.js';
@@ -13,12 +14,12 @@ import type { VersionInfo } from './version.js';
 
 export interface AppDeps {
   usersRepo: UsersRepo;
+  signalsRepo: SignalsRepo;
   adminsRepo: AdminsRepo;
   claude: Anthropic;
   botToken: string;
   ownerTelegramId: number;
   targetUrl: string;
-  freeRunLimitEnabled: boolean;
   versionInfo: VersionInfo;
 }
 
@@ -35,11 +36,7 @@ export function buildApp(deps: AppDeps): express.Express {
   });
   app.get('/api/config', createConfigHandler(deps.targetUrl));
   app.get('/api/me', authMiddleware, createMeHandler(deps.usersRepo));
-  app.post(
-    '/api/analyze',
-    authMiddleware,
-    createAnalyzeHandler(deps.usersRepo, deps.claude, deps.freeRunLimitEnabled)
-  );
+  app.post('/api/analyze', authMiddleware, createAnalyzeHandler(deps.usersRepo, deps.signalsRepo, deps.claude));
   app.use(
     '/api/admin',
     authMiddleware,

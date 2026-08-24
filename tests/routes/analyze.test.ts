@@ -4,6 +4,7 @@ import request from 'supertest';
 import crypto from 'node:crypto';
 import { createTestDb } from '../helpers/testDb.js';
 import { UsersRepo } from '../../src/db/users.repo.js';
+import { SignalsRepo } from '../../src/db/signals.repo.js';
 import { createAuthMiddleware } from '../../src/middleware/auth.js';
 import { createAnalyzeHandler } from '../../src/routes/analyze.js';
 
@@ -22,19 +23,18 @@ function buildInitData(telegramId: number): string {
   return new URLSearchParams({ ...fields, hash }).toString();
 }
 
-function buildApp(usersRepo: UsersRepo, signal: unknown, freeRunLimitEnabled = true) {
-  const app = express();
-  app.use(express.json({ limit: '15mb' }));
-  const fakeClaude = {
+function fakeClaudeReturning(signal: unknown) {
+  return {
     messages: {
       create: vi.fn().mockResolvedValue({ content: [{ type: 'tool_use', name: 'provide_signal', input: signal }] }),
     },
   } as any;
-  app.post(
-    '/api/analyze',
-    createAuthMiddleware(BOT_TOKEN),
-    createAnalyzeHandler(usersRepo, fakeClaude, freeRunLimitEnabled)
-  );
+}
+
+function buildApp(usersRepo: UsersRepo, signalsRepo: SignalsRepo, claude: any) {
+  const app = express();
+  app.use(express.json({ limit: '15mb' }));
+  app.post('/api/analyze', createAuthMiddleware(BOT_TOKEN), createAnalyzeHandler(usersRepo, signalsRepo, claude));
   return app;
 }
 
@@ -52,27 +52,55 @@ const SAMPLE_SIGNAL = {
 };
 
 let usersRepo: UsersRepo;
+let signalsRepo: SignalsRepo;
 
 beforeEach(async () => {
-  usersRepo = new UsersRepo(await createTestDb());
+  const db = await createTestDb();
+  usersRepo = new UsersRepo(db);
+  signalsRepo = new SignalsRepo(db);
 });
 
 describe('POST /api/analyze', () => {
-  it('returns the signal without a balance on first use', async () => {
-    const response = await request(buildApp(usersRepo, SAMPLE_SIGNAL))
+  it('returns a locked signal for the free teaser', async () => {
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    const response = await request(app)
       .post('/api/analyze')
       .set('X-Telegram-Init-Data', buildInitData(1))
       .send({ imageBase64: 'abc', mediaType: 'image/png' });
 
     expect(response.status).toBe(200);
-    expect(response.body.signal.trend).toBe('bullish');
-    expect(response.body.signal.instrument).toBe('EUR/USD');
-    expect(response.body.balance).toBeUndefined();
+    expect(response.body.signal).toMatchObject({ instrument: 'EUR/USD', timeframe: 'M15', locked: true });
+    expect(response.body.signal.trend).toBeUndefined();
+    expect(response.body.signal.entryPrice).toBeUndefined();
+    expect(response.body.signal.rationale).toBeUndefined();
+  });
+
+  it('stores the signal even though the viewer cannot read it', async () => {
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(4))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    const stored = await signalsRepo.listByUser(4, 10);
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0].signal.trend).toBe('bullish');
+    expect(stored[0].signal.rationale).toBe('test rationale');
+  });
+
+  it('spends the teaser', async () => {
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(1))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
     expect((await usersRepo.getOrCreate(1)).freeRunUsed).toBe(true);
   });
 
-  it('returns 403 ALREADY_USED on the second attempt', async () => {
-    const app = buildApp(usersRepo, SAMPLE_SIGNAL);
+  it('returns 403 NO_ACCESS on the second attempt without access', async () => {
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
     const send = () =>
       request(app)
         .post('/api/analyze')
@@ -83,49 +111,55 @@ describe('POST /api/analyze', () => {
     const second = await send();
 
     expect(second.status).toBe(403);
-    expect(second.body).toEqual({ error: 'ALREADY_USED' });
+    expect(second.body).toEqual({ error: 'NO_ACCESS' });
   });
 
-  it('allows a second attempt when the limit is disabled', async () => {
-    const app = buildApp(usersRepo, SAMPLE_SIGNAL, false);
+  it('does not call Claude once the teaser is spent', async () => {
+    const claude = fakeClaudeReturning(SAMPLE_SIGNAL);
+    const app = buildApp(usersRepo, signalsRepo, claude);
     const send = () =>
       request(app)
         .post('/api/analyze')
-        .set('X-Telegram-Init-Data', buildInitData(6))
+        .set('X-Telegram-Init-Data', buildInitData(12))
         .send({ imageBase64: 'abc', mediaType: 'image/png' });
 
     await send();
-    const second = await send();
+    await send();
 
-    expect(second.status).toBe(200);
+    expect(claude.messages.create).toHaveBeenCalledTimes(1);
   });
 
-  it('still records the spent run while the limit is disabled', async () => {
-    await request(buildApp(usersRepo, SAMPLE_SIGNAL, false))
+  it('returns the full signal when access is granted', async () => {
+    await usersRepo.setUnlimited(3, true);
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    const response = await request(app)
       .post('/api/analyze')
-      .set('X-Telegram-Init-Data', buildInitData(7))
+      .set('X-Telegram-Init-Data', buildInitData(3))
       .send({ imageBase64: 'abc', mediaType: 'image/png' });
 
-    expect((await usersRepo.getOrCreate(7)).freeRunUsed).toBe(true);
+    expect(response.status).toBe(200);
+    expect(response.body.signal).toMatchObject({ trend: 'bullish', entryPrice: 1.1, locked: false });
   });
 
-  it('allows repeated use when unlimited_access is set', async () => {
-    await usersRepo.setUnlimited(3, true);
-    const app = buildApp(usersRepo, SAMPLE_SIGNAL);
+  it('never spends the teaser of a user with access', async () => {
+    await usersRepo.setUnlimited(13, true);
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
     const send = () =>
       request(app)
         .post('/api/analyze')
-        .set('X-Telegram-Init-Data', buildInitData(3))
+        .set('X-Telegram-Init-Data', buildInitData(13))
         .send({ imageBase64: 'abc', mediaType: 'image/png' });
 
     await send();
     const second = await send();
 
     expect(second.status).toBe(200);
+    expect((await usersRepo.getOrCreate(13)).freeRunUsed).toBe(false);
   });
 
   it('accepts image/webp', async () => {
-    const response = await request(buildApp(usersRepo, SAMPLE_SIGNAL))
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    const response = await request(app)
       .post('/api/analyze')
       .set('X-Telegram-Init-Data', buildInitData(8))
       .send({ imageBase64: 'abc', mediaType: 'image/webp' });
@@ -134,7 +168,8 @@ describe('POST /api/analyze', () => {
   });
 
   it('returns 400 for an unsupported media type', async () => {
-    const response = await request(buildApp(usersRepo, SAMPLE_SIGNAL))
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    const response = await request(app)
       .post('/api/analyze')
       .set('X-Telegram-Init-Data', buildInitData(9))
       .send({ imageBase64: 'abc', mediaType: 'image/gif' });
@@ -144,7 +179,8 @@ describe('POST /api/analyze', () => {
   });
 
   it('returns 400 when imageBase64 is missing', async () => {
-    const response = await request(buildApp(usersRepo, SAMPLE_SIGNAL))
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+    const response = await request(app)
       .post('/api/analyze')
       .set('X-Telegram-Init-Data', buildInitData(5))
       .send({ mediaType: 'image/png' });

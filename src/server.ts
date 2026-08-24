@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { loadConfig } from './config.js';
 import { createPool, initSchema } from './db/db.js';
 import { UsersRepo } from './db/users.repo.js';
+import { SignalsRepo } from './db/signals.repo.js';
 import { AdminsRepo } from './db/admins.repo.js';
 import { buildApp } from './app.js';
 import { createBotPoller } from './telegram/bot.js';
@@ -29,6 +30,7 @@ async function main(): Promise<void> {
   await initSchema(pool);
 
   const usersRepo = new UsersRepo(pool);
+  const signalsRepo = new SignalsRepo(pool);
   const adminsRepo = new AdminsRepo(pool);
   await adminsRepo.add(config.ownerTelegramId, null);
 
@@ -39,7 +41,7 @@ async function main(): Promise<void> {
     botToken: config.botToken,
     ownerTelegramId: config.ownerTelegramId,
     targetUrl: buildTargetUrl(config.targetUsername),
-    freeRunLimitEnabled: config.freeRunLimitEnabled,
+    signalsRepo,
     versionInfo,
   });
 
