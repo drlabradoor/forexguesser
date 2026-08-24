@@ -54,7 +54,7 @@
 | `src/db/users.repo.ts` | репозиторий без `setBalanceOverride` и `balanceOverride` |
 | `src/routes/me.ts` | `{ alreadyUsed, user }` |
 | `src/routes/admin.ts` | админ-роуты без `POST /users/:id/balance` |
-| `tests/db/db.test.ts` | **новый**: схема без колонки, снос колонки из старой схемы, идемпотентность |
+| `tests/db/db.test.ts` | **новый**: схема без колонки, снос колонки из старой схемы, повторный запуск сноса |
 | `<scratchpad>/preview/server.mjs`, `<scratchpad>/preview/index.html` | **вне репозитория**: стенд визуальной проверки |
 
 ---
@@ -400,13 +400,20 @@ git commit -m "feat: add the not-financial-advice disclaimer to every tab"
 
 - [ ] **Step 1: Написать падающий тест на схему**
 
-Create `tests/db/db.test.ts`. Проверка идёт через `Object.keys` строки, а **не** через `information_schema` —
-поддержка `information_schema` в pg-mem неполная, и тест сломался бы по причине, не связанной с задачей.
+Create `tests/db/db.test.ts`. Две вещи, выясненные прогоном (сохранены здесь, чтобы никто не «упростил» тест обратно):
+
+1. Проверка колонок идёт через `Object.keys` настоящей строки, а **не** через `information_schema` — поддержка
+   `information_schema` в pg-mem неполная.
+2. **pg-mem падает на `CREATE TABLE IF NOT EXISTS`, если таблица уже существует** («Not supported: AST which parts
+   have not been read by the query planner»). Поэтому `initSchema` нельзя ни прогнать дважды, ни прогнать поверх
+   старой схемы: тест проверял бы ограничение pg-mem, а не наш код. Настоящий Postgres это умеет, и прод работает
+   именно так. Вывод: сносящий statement экспортируется отдельно (`LEGACY_CLEANUP_SQL`) и тестируется напрямую —
+   непокрытым остаётся только `IF NOT EXISTS`, а необратимая часть покрыта.
 
 ```ts
 import { describe, it, expect } from 'vitest';
 import { newDb } from 'pg-mem';
-import { initSchema, type Queryable } from '../../src/db/db.js';
+import { initSchema, LEGACY_CLEANUP_SQL, type Queryable } from '../../src/db/db.js';
 
 function memPool(): Queryable {
   const { Pool } = newDb().adapters.createPg();
@@ -419,30 +426,35 @@ async function userColumns(db: Queryable): Promise<string[]> {
   return Object.keys(result.rows[0]);
 }
 
+/** Форма таблицы до спеки 2026-08-24, дословно, но без `IF NOT EXISTS`. */
+const LEGACY_USERS_SQL = `CREATE TABLE users (
+  telegram_id BIGINT PRIMARY KEY,
+  free_run_used BOOLEAN NOT NULL DEFAULT FALSE,
+  unlimited_access BOOLEAN NOT NULL DEFAULT FALSE,
+  balance_override DOUBLE PRECISION,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`;
+
 describe('initSchema', () => {
   it('creates users without a balance_override column', async () => {
     const db = memPool();
     await initSchema(db);
     expect(await userColumns(db)).not.toContain('balance_override');
   });
+});
 
+describe('LEGACY_CLEANUP_SQL', () => {
   it('drops balance_override left behind by the older schema', async () => {
     const db = memPool();
-    await db.query(`CREATE TABLE users (
-      telegram_id BIGINT PRIMARY KEY,
-      free_run_used BOOLEAN NOT NULL DEFAULT FALSE,
-      unlimited_access BOOLEAN NOT NULL DEFAULT FALSE,
-      balance_override DOUBLE PRECISION,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )`);
-    await initSchema(db);
+    await db.query(LEGACY_USERS_SQL);
+    await db.query(LEGACY_CLEANUP_SQL);
     expect(await userColumns(db)).not.toContain('balance_override');
   });
 
-  it('runs twice without failing', async () => {
+  it('is a no-op when the column is already gone', async () => {
     const db = memPool();
     await initSchema(db);
-    await initSchema(db);
+    await db.query(LEGACY_CLEANUP_SQL);
     expect(await userColumns(db)).not.toContain('balance_override');
   });
 });
@@ -451,7 +463,8 @@ describe('initSchema', () => {
 - [ ] **Step 2: Запустить и убедиться, что тест падает**
 
 Run: `npx vitest run tests/db/db.test.ts`
-Expected: FAIL — первый и второй тесты сообщают, что `balance_override` присутствует в списке колонок.
+Expected: FAIL, три теста. Первый — `expected [ Array(5) ] to not include 'balance_override'`; второй и третий —
+`Cannot read properties of undefined (reading 'values')`, потому что `LEGACY_CLEANUP_SQL` ещё не существует.
 
 - [ ] **Step 3: Убрать колонку из схемы и добавить одноразовый снос**
 
@@ -479,37 +492,21 @@ CREATE TABLE IF NOT EXISTS admins (
  * колонку в базе, где она уже есть. Удалить это выражение отдельным коммитом
  * после первого успешного старта прода.
  */
-const DROP_BALANCE_OVERRIDE_SQL = 'ALTER TABLE users DROP COLUMN IF EXISTS balance_override';
+export const LEGACY_CLEANUP_SQL = 'ALTER TABLE users DROP COLUMN IF EXISTS balance_override';
 
 export async function initSchema(db: Queryable): Promise<void> {
   await db.query(SCHEMA_SQL);
-  await db.query(DROP_BALANCE_OVERRIDE_SQL);
+  await db.query(LEGACY_CLEANUP_SQL);
 }
 ```
+
+Константа экспортируется, а не остаётся приватной, именно ради теста из Step 1 — см. причину там.
 
 - [ ] **Step 4: Запустить тест и убедиться, что он проходит**
 
 Run: `npx vitest run tests/db/db.test.ts`
-Expected: PASS, три теста.
-
-**Если pg-mem не понимает `DROP COLUMN IF EXISTS`** (ошибка парсера на `IF EXISTS`) — заменить константу и функцию
-на вариант с точечным перехватом «колонки нет» (`42703` — Postgres `undefined_column`), не глотая остальные ошибки:
-
-```ts
-const DROP_BALANCE_OVERRIDE_SQL = 'ALTER TABLE users DROP COLUMN balance_override';
-
-export async function initSchema(db: Queryable): Promise<void> {
-  await db.query(SCHEMA_SQL);
-  try {
-    await db.query(DROP_BALANCE_OVERRIDE_SQL);
-  } catch (err) {
-    // 42703 = undefined_column: колонки уже нет, это и есть цель.
-    if ((err as { code?: string }).code !== '42703') throw err;
-  }
-}
-```
-
-Если сработал этот вариант — записать причину в комментарий, чтобы следующий не «упростил» его обратно.
+Expected: PASS, три теста. Заодно это подтверждает, что **pg-mem понимает `DROP COLUMN IF EXISTS`** — обходной
+вариант с перехватом `42703` (`undefined_column`) не понадобился и в код не попал.
 
 - [ ] **Step 5: Вычистить баланс из типов, репозитория и роутов**
 
@@ -701,7 +698,7 @@ export const state = {
 - [ ] **Step 10: Проверить, что упоминаний баланса не осталось**
 
 Run: `grep -rn -i "balance\|баланс" src public tests README.md`
-Expected: ноль совпадений, кроме `DROP_BALANCE_OVERRIDE_SQL` и его комментария в `src/db/db.ts` и теста
+Expected: ноль совпадений, кроме `LEGACY_CLEANUP_SQL` и его комментария в `src/db/db.ts` и теста
 `tests/db/db.test.ts`.
 
 - [ ] **Step 11: Проверить на стенде**
@@ -1135,7 +1132,7 @@ Run: `git log --oneline main..HEAD`
 Expected: ровно пять коммитов — спека+план, дисклеймер, удаление баланса, раскладка, ввод с ПК.
 
 Run: `grep -rn -i "balance\|баланс" src public tests README.md`
-Expected: только `DROP_BALANCE_OVERRIDE_SQL` в `src/db/db.ts` и `tests/db/db.test.ts`.
+Expected: только `LEGACY_CLEANUP_SQL` в `src/db/db.ts` и `tests/db/db.test.ts`.
 
 - [ ] **Step 5: Проход в Telegram Desktop (делает владелец)**
 
@@ -1155,5 +1152,5 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'users';
 
 Expected: `telegram_id`, `free_run_used`, `unlimited_access`, `created_at`.
 
-После этого `DROP_BALANCE_OVERRIDE_SQL` и его вызов можно удалить отдельным коммитом — он свою работу сделал. До
+После этого `LEGACY_CLEANUP_SQL` и его вызов можно удалить отдельным коммитом — он свою работу сделал. До
 этого момента удалять нельзя.
