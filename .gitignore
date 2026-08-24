@@ -2,3 +2,5 @@ node_modules
 dist
 *.sqlite
 .env
+test-results
+playwright-report
