@@ -50,8 +50,11 @@ body {
   color: var(--text-mute);
 }
 
+/* Выше окна тизера (z-index: 20): окно не закрывается, но запирать в нём
+   навигацию нельзя -- его же текст отправляет пользователя на «Сигналы». */
 .tabbar {
   position: fixed;
+  z-index: 30;
   left: 0;
   right: 0;
   bottom: 0;
@@ -306,6 +309,13 @@ body {
 
 .teaser__icon svg { width: 28px; height: 28px; }
 .teaser__title { font-size: 17px; font-weight: 600; }
+
+.teaser__pair {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
 .teaser__text { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
 
 .button--ghost {

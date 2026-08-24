@@ -262,13 +262,19 @@ function renderLockedResult(signal) {
   return wrapper;
 }
 
-function renderTeaser() {
+function renderTeaser(signal) {
+  // Распознанная пара живёт внутри окна, а не только в карточке под ним:
+  // под затемнением она нечитаема ни на телефоне, ни на десктопе, а это
+  // единственное доказательство, что график действительно прочитан.
+  const pair = [signal.instrument ?? 'Инструмент не определён', signal.timeframe].filter(Boolean).join(' · ');
+
   const overlay = document.createElement('div');
   overlay.className = 'teaser';
   overlay.innerHTML = `
     <div class="teaser__box">
       <span class="teaser__icon">${icons.lock}</span>
       <div class="teaser__title">Сигнал готов</div>
+      <div class="teaser__pair">${pair}</div>
       <p class="teaser__text">
         График разобран, уровни входа и защиты рассчитаны. Сигнал сохранён — он появится во вкладке «Сигналы»,
         как только вы откроете полный доступ.
@@ -335,7 +341,7 @@ export function renderScreenshot() {
   if (state.phase === 'result' && state.signal) {
     if (state.signal.locked) {
       section.appendChild(renderLockedResult(state.signal));
-      section.appendChild(renderTeaser());
+      section.appendChild(renderTeaser(state.signal));
     } else {
       section.appendChild(renderResult());
     }
