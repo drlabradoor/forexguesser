@@ -23,6 +23,16 @@ export interface StoredSignal {
   createdAt: string;
 }
 
+export interface LockedSignalView {
+  id: number;
+  createdAt: string;
+  instrument: string | null;
+  timeframe: string | null;
+  locked: true;
+}
+
+export type VisibleSignalView = { id: number; createdAt: string; locked: false } & Signal;
+
 export interface UserRecord {
   telegramId: number;
   freeRunUsed: boolean;
