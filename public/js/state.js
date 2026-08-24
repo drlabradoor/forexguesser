@@ -5,6 +5,11 @@ export const state = {
   phase: 'loading', // loading | idle | selected | analyzing | result | error
   targetUrl: 'https://t.me/',
   profile: null, // { telegramId, firstName, photoUrl }
+  hasAccess: false,
+  teaserUsed: false,
+  signals: null, // null = ещё не загружали
+  signalsError: false,
+  expandedSignalId: null,
   file: null,
   previewUrl: null,
   signal: null,

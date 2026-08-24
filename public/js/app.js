@@ -119,6 +119,8 @@ async function init() {
   if (config.status === 'fulfilled') patch.targetUrl = config.value.targetUrl;
   if (me.status === 'fulfilled') {
     patch.profile = me.value.user;
+    patch.hasAccess = me.value.hasAccess;
+    patch.teaserUsed = me.value.teaserUsed;
   } else {
     // Falling back to initDataUnsafe keeps the header populated when /api/me
     // is down.

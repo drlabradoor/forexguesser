@@ -84,8 +84,8 @@ function errorFor(err) {
   if (err instanceof ApiError) {
     if (err.status === 403) {
       return {
-        title: 'Бесплатный анализ уже использован',
-        text: 'Полный доступ открывает неограниченный разбор графиков.',
+        title: 'Нужен полный доступ',
+        text: 'Бесплатный разбор уже использован. Полный доступ открывает сигналы целиком.',
         action: 'cta',
       };
     }
@@ -108,7 +108,14 @@ async function runAnalysis() {
     const prepared = await prepareImage(state.file);
     const data = await postAnalyze(prepared);
     if (rotation) await rotation.finish();
-    setState({ phase: 'result', signal: data.signal });
+    // Успешный закрытый разбор сам по себе означает, что тизер израсходован;
+    // перезапрашивать /api/me ради факта, который только что произошёл, незачем.
+    setState({
+      phase: 'result',
+      signal: data.signal,
+      teaserUsed: state.hasAccess ? state.teaserUsed : true,
+      signals: null, // история устарела, перезагрузится при открытии таба
+    });
   } catch (err) {
     if (rotation) await rotation.finish();
     setState({ phase: 'error', error: errorFor(err) });
@@ -116,6 +123,17 @@ async function runAnalysis() {
 }
 
 function renderAnalyzeButton() {
+  // Третье состояние: тизер потрачен, доступа нет. Кнопку анализа показывать
+  // нечестно -- сервер всё равно ответит 403, а пользователь заплатит за это
+  // выгрузкой картинки.
+  if (!state.hasAccess && state.teaserUsed) {
+    const cta = document.createElement('button');
+    cta.className = 'button button--primary';
+    cta.dataset.action = 'cta';
+    cta.textContent = 'Получить полный доступ';
+    return cta;
+  }
+
   const button = document.createElement('button');
   button.className = 'button button--primary';
   button.disabled = state.phase === 'analyzing';
@@ -145,8 +163,12 @@ const TREND = {
 
 const MAX_KEY_POINTS = 5;
 
-function renderResult() {
-  const signal = state.signal;
+/**
+ * Карточка сигнала без CTA: её же показывает история, где кнопка «получить
+ * доступ» неуместна. Второй вариант карточки для истории был бы копией,
+ * которая разойдётся.
+ */
+export function renderSignalCard(signal) {
   const trend = TREND[signal.trend] ?? TREND.neutral;
 
   const labels = ['Вход', 'Стоп-лосс', 'ТП1', 'ТП2', 'ТП3'];
@@ -208,10 +230,60 @@ function renderResult() {
       <summary class="breakdown__summary">Технический разбор</summary>
       <p class="breakdown__text">${signal.rationale}</p>
     </details>
-
-    <button class="button button--primary" data-action="cta">Получить полный доступ</button>
   `;
   return wrapper;
+}
+
+function renderResult() {
+  const card = renderSignalCard(state.signal);
+  card.insertAdjacentHTML(
+    'beforeend',
+    '<button class="button button--primary" data-action="cta">Получить полный доступ</button>'
+  );
+  return card;
+}
+
+/** Под окном тизера: доказательство, что график прочитан, и больше ничего. */
+function renderLockedResult(signal) {
+  const wrapper = document.createElement('section');
+  wrapper.className = 'result';
+  wrapper.innerHTML = `
+    <div class="verdict verdict--flat">
+      <span class="verdict__icon">${icons.lock}</span>
+      <div class="verdict__label">Сигнал готов</div>
+      <div class="verdict__instrument">${signal.instrument ?? 'Инструмент не определён'}</div>
+      <div class="badge">
+        ${icons.clock}
+        <span class="badge__label">Таймфрейм</span>
+        <span class="badge__value">${signal.timeframe ?? 'не определён'}</span>
+      </div>
+    </div>
+  `;
+  return wrapper;
+}
+
+function renderTeaser() {
+  const overlay = document.createElement('div');
+  overlay.className = 'teaser';
+  overlay.innerHTML = `
+    <div class="teaser__box">
+      <span class="teaser__icon">${icons.lock}</span>
+      <div class="teaser__title">Сигнал готов</div>
+      <p class="teaser__text">
+        График разобран, уровни входа и защиты рассчитаны. Сигнал сохранён — он появится во вкладке «Сигналы»,
+        как только вы откроете полный доступ.
+      </p>
+      <button class="button button--primary" data-action="cta">Получить полный доступ</button>
+      <button class="button button--ghost" data-action="reset">Загрузить другой скриншот</button>
+    </div>
+  `;
+  overlay.addEventListener('click', (event) => {
+    if (event.target.closest('[data-action="reset"]')) {
+      if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+      setState({ phase: 'idle', file: null, previewUrl: null, signal: null });
+    }
+  });
+  return overlay;
 }
 
 function renderError() {
@@ -242,7 +314,9 @@ export function renderScreenshot() {
   const section = document.createElement('section');
   // Маркер для CSS: двухколоночная раскладка на >=1000px включается только в
   // результате и только когда есть превью для левой колонки.
-  section.className = state.phase === 'result' && state.previewUrl ? 'screen is-result' : 'screen';
+  // Закрытый результат в две колонки не раскладывается: справа нечего показать.
+  section.className =
+    state.phase === 'result' && state.previewUrl && !state.signal?.locked ? 'screen is-result' : 'screen';
   section.appendChild(renderProfile());
 
   if (state.phase === 'idle' || state.phase === 'loading') {
@@ -259,7 +333,12 @@ export function renderScreenshot() {
     section.appendChild(renderAnalysisCard());
   }
   if (state.phase === 'result' && state.signal) {
-    section.appendChild(renderResult());
+    if (state.signal.locked) {
+      section.appendChild(renderLockedResult(state.signal));
+      section.appendChild(renderTeaser());
+    } else {
+      section.appendChild(renderResult());
+    }
   }
   if (state.phase === 'error' && state.error) {
     section.appendChild(renderError());

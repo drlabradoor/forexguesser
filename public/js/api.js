@@ -39,6 +39,10 @@ export function getMe() {
   return apiFetch('/api/me');
 }
 
+export function getSignals() {
+  return apiFetch('/api/signals');
+}
+
 export function postAnalyze({ imageBase64, mediaType }) {
   return apiFetch('/api/analyze', {
     method: 'POST',
