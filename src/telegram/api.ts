@@ -18,9 +18,17 @@ export function createTelegramApi(botToken: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body ?? {}),
     });
-    const json = (await response.json()) as { ok: boolean; result: T; description?: string };
+    const json = (await response.json()) as {
+      ok: boolean;
+      result: T;
+      error_code?: number;
+      description?: string;
+    };
     if (!json.ok) {
-      throw new Error(`Telegram API error in ${method}: ${json.description}`);
+      // The code decides what to do about it: 502 is a transient Telegram
+      // hiccup, 409 means a second instance is polling the same bot, 401 means
+      // the token is dead. Without it the log reads the same in all three cases.
+      throw new Error(`Telegram API error in ${method}: ${json.error_code ?? '?'} ${json.description}`);
     }
     return json.result;
   }

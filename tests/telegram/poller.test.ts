@@ -66,4 +66,22 @@ describe('createBotPoller under a failing Telegram API', () => {
     expect(state.calls - firstWindow).toBeLessThan(firstWindow);
   });
 
+  it('reports the error code so 502 is distinguishable from 409 and 401', async () => {
+    const { fetchImpl } = failingFetch();
+    vi.stubGlobal('fetch', fetchImpl);
+    const logged: unknown[][] = [];
+    vi.spyOn(console, 'error').mockImplementation((...args) => {
+      logged.push(args);
+    });
+
+    const poller = createBotPoller('token', 'https://example.com', adminsRepo);
+    poller.start();
+    await sleep(150);
+    poller.stop();
+
+    // 502 -- транзиентный сбой Telegram, ждём; 409 -- второй инстанс поллит
+    // того же бота; 401 -- умер токен. Реакция разная, а в логе они были
+    // неразличимы.
+    expect(logged.flat().map(String).join(' ')).toContain('502');
+  });
 });
