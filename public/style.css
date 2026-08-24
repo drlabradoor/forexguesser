@@ -401,3 +401,132 @@ body > p { margin: 16px; }
   margin: 2px;
   cursor: pointer;
 }
+
+/* ===== Большие экраны =====
+   Мини-апп в Telegram Desktop, планшет, развёрнутое окно. Мобильная
+   раскладка выше не меняется: всё живёт внутри @media. */
+
+@media (min-width: 600px) {
+  .content,
+  .disclaimer {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  /* Таб-бар отрывается от нижнего края и становится плавающей панелью. */
+  .tabbar {
+    left: 50%;
+    right: auto;
+    width: min(560px, calc(100% - 32px));
+    transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+    height: var(--tabbar-height);
+    padding-bottom: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .app { padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 32px); }
+
+  /* Пустой экран центрируется: центрировать нечего, кроме самого сообщения. */
+  .content--centered { justify-content: center; }
+  .content--centered .locked { margin-top: 0; }
+
+  /* На 360px ограничение по ширине имело смысл, на 560+ график превращается в
+     нечитаемую полоску -- ограничиваем высоту, а не ширину. */
+  .dropzone__preview {
+    max-width: 100%;
+    max-height: 420px;
+  }
+}
+
+@media (min-width: 1000px) {
+  :root { --sidebar-width: 220px; }
+
+  .app {
+    padding-bottom: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  .content,
+  .disclaimer { max-width: 1100px; }
+
+  .content { padding: 28px 28px 0; }
+  .disclaimer { padding: 8px 28px 28px; }
+
+  /* Таб-бар -> сайдбар. Базовое правило -- grid из трёх колонок, здесь это
+     колонка из трёх строк. */
+  .tabbar {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    height: auto;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 12px;
+    border: 0;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+
+  .tabbar__item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 10px;
+  }
+
+  /* Полоска-индикатор поворачивается: сверху на мобильном, слева в сайдбаре. */
+  .tabbar__item.is-active::before {
+    top: 50%;
+    left: 0;
+    width: 2px;
+    height: 22px;
+    transform: translateY(-50%);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .tabbar__label { font-size: 13px; }
+
+  .levels { grid-template-columns: repeat(3, 1fr); }
+
+  /* Результат в две колонки: график и уровни видны одновременно, сверять их
+     скроллом больше не нужно. Профиль -- на всю ширину, иначе колонки
+     стартовали бы с разной вертикали. */
+  .screen.is-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .screen.is-result .profile { grid-column: 1 / -1; }
+  .screen.is-result .dropzone--filled { grid-column: 1; }
+  .screen.is-result .result { grid-column: 2; }
+  .screen.is-result .dropzone__preview { max-height: 70vh; }
+}
+
+/* Ховер только там, где есть настоящий курсор: на тач-устройствах :hover
+   залипает после тапа до следующего касания. */
+@media (hover: hover) {
+  .button--primary:hover:not(:disabled) { background: #FFB53D; }
+  .tabbar__item:hover { color: var(--text-dim); }
+  .tabbar__item.is-active:hover { color: var(--accent); }
+  .dropzone:hover { border-color: var(--text-mute); }
+  .dropzone__inner:hover { background: var(--surface-2); }
+  .breakdown__summary:hover { color: var(--text); }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

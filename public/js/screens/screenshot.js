@@ -231,7 +231,9 @@ function renderError() {
 
 export function renderScreenshot() {
   const section = document.createElement('section');
-  section.className = 'screen';
+  // Маркер для CSS: двухколоночная раскладка на >=1000px включается только в
+  // результате и только когда есть превью для левой колонки.
+  section.className = state.phase === 'result' && state.previewUrl ? 'screen is-result' : 'screen';
   section.appendChild(renderProfile());
 
   if (state.phase === 'idle' || state.phase === 'loading') {

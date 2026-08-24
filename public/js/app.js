@@ -27,6 +27,9 @@ function renderTabBar() {
 function renderContent() {
   const root = document.getElementById('content');
   root.innerHTML = '';
+  // Заглушки центрируются по вертикали, но только на широких экранах -- правило
+  // живёт в @media (min-width: 600px).
+  root.classList.toggle('content--centered', state.tab !== 'screenshot');
   if (state.tab === 'screenshot') {
     root.appendChild(renderScreenshot());
   } else if (state.tab === 'signals') {
