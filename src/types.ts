@@ -16,6 +16,13 @@ export interface Signal {
   rationale: string;
 }
 
+export interface StoredSignal {
+  id: number;
+  telegramId: number;
+  signal: Signal;
+  createdAt: string;
+}
+
 export interface UserRecord {
   telegramId: number;
   freeRunUsed: boolean;

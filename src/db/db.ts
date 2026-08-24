@@ -25,6 +25,15 @@ CREATE TABLE IF NOT EXISTS admins (
   added_by BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS signals (
+  id BIGSERIAL PRIMARY KEY,
+  telegram_id BIGINT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS signals_user_recent ON signals (telegram_id, created_at DESC);
 `;
 
 /**
