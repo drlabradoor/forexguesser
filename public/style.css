@@ -25,13 +25,29 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.app { min-height: 100vh; }
+/* Запас под фиксированный таб-бар живёт здесь, а не на .content: сноска
+   стоит ниже контента, и с прежним padding она уехала бы под таб-бар. */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 16px);
+}
 
 .content {
-  padding: 16px 16px calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 24px);
+  flex: 1;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.disclaimer {
+  margin: 0;
+  padding: 4px 16px 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-mute);
 }
 
 .tabbar {
