@@ -71,14 +71,12 @@ async function init() {
   const [config, me] = await Promise.allSettled([getConfig(), getMe()]);
 
   const patch = { phase: 'idle' };
-  patch.balanceMode = localStorage.getItem('balanceMode') === 'demo' ? 'demo' : 'real';
   if (config.status === 'fulfilled') patch.targetUrl = config.value.targetUrl;
   if (me.status === 'fulfilled') {
     patch.profile = me.value.user;
-    patch.balance = me.value.balance;
   } else {
     // Falling back to initDataUnsafe keeps the header populated when /api/me
-    // is down; the balance card stays hidden rather than showing a lie.
+    // is down.
     const unsafe = tg?.initDataUnsafe?.user;
     patch.profile = unsafe
       ? { telegramId: unsafe.id, firstName: unsafe.first_name, photoUrl: unsafe.photo_url ?? null }

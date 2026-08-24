@@ -1,14 +1,3 @@
-export const DEMO_BALANCE = 10000;
-
-const balanceFormatter = new Intl.NumberFormat('ru-RU', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-export function formatBalance(value) {
-  return `${balanceFormatter.format(value)} $`;
-}
-
 function isPrice(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }

@@ -15,7 +15,6 @@ describe('UsersRepo', () => {
       telegramId: 42,
       freeRunUsed: false,
       unlimitedAccess: false,
-      balanceOverride: null,
     });
   });
 
@@ -38,11 +37,6 @@ describe('UsersRepo', () => {
     await repo.markRunUsed(9);
     await repo.resetRun(9);
     expect((await repo.getOrCreate(9)).freeRunUsed).toBe(false);
-  });
-
-  it('setBalanceOverride stores a custom balance', async () => {
-    await repo.setBalanceOverride(3, 5000);
-    expect((await repo.getOrCreate(3)).balanceOverride).toBe(5000);
   });
 
   it('listAll returns every created user', async () => {

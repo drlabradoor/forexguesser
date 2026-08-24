@@ -20,7 +20,6 @@ export interface UserRecord {
   telegramId: number;
   freeRunUsed: boolean;
   unlimitedAccess: boolean;
-  balanceOverride: number | null;
   createdAt: string;
 }
 

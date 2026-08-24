@@ -5,7 +5,6 @@ interface UserRow {
   telegram_id: number;
   free_run_used: boolean;
   unlimited_access: boolean;
-  balance_override: number | null;
   created_at: Date | string;
 }
 
@@ -14,7 +13,6 @@ function rowToUser(row: UserRow): UserRecord {
     telegramId: Number(row.telegram_id),
     freeRunUsed: !!row.free_run_used,
     unlimitedAccess: !!row.unlimited_access,
-    balanceOverride: row.balance_override === null ? null : Number(row.balance_override),
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
   };
 }
@@ -43,11 +41,6 @@ export class UsersRepo {
   async resetRun(telegramId: number): Promise<void> {
     await this.getOrCreate(telegramId);
     await this.db.query('UPDATE users SET free_run_used = FALSE WHERE telegram_id = $1', [telegramId]);
-  }
-
-  async setBalanceOverride(telegramId: number, value: number | null): Promise<void> {
-    await this.getOrCreate(telegramId);
-    await this.db.query('UPDATE users SET balance_override = $1 WHERE telegram_id = $2', [value, telegramId]);
   }
 
   async listAll(): Promise<UserRecord[]> {

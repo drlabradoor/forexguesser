@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS users (
   telegram_id BIGINT PRIMARY KEY,
   free_run_used BOOLEAN NOT NULL DEFAULT FALSE,
   unlimited_access BOOLEAN NOT NULL DEFAULT FALSE,
-  balance_override DOUBLE PRECISION,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -37,6 +36,15 @@ export function createPool(connectionString: string): pg.Pool {
   return new pg.Pool({ connectionString });
 }
 
+/**
+ * Одноразовая уборка, а не раннер миграций: косметический баланс удалён
+ * (спека 2026-08-24), а `CREATE TABLE IF NOT EXISTS` выше никогда не снесёт
+ * колонку в базе, где она уже есть. Удалить это выражение отдельным коммитом
+ * после первого успешного старта прода.
+ */
+export const LEGACY_CLEANUP_SQL = 'ALTER TABLE users DROP COLUMN IF EXISTS balance_override';
+
 export async function initSchema(db: Queryable): Promise<void> {
   await db.query(SCHEMA_SQL);
+  await db.query(LEGACY_CLEANUP_SQL);
 }

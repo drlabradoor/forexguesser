@@ -6,7 +6,6 @@ import { createTestDb } from '../helpers/testDb.js';
 import { UsersRepo } from '../../src/db/users.repo.js';
 import { createAuthMiddleware } from '../../src/middleware/auth.js';
 import { createMeHandler } from '../../src/routes/me.js';
-import { generateBalance } from '../../src/balance.js';
 
 const BOT_TOKEN = 'test-bot-token';
 
@@ -33,13 +32,13 @@ beforeEach(async () => {
 });
 
 describe('GET /api/me', () => {
-  it('returns the profile, the generated balance and alreadyUsed=false for a new user', async () => {
+  it('returns the profile and alreadyUsed=false for a new user', async () => {
     const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', buildInitData(10));
 
     expect(response.status).toBe(200);
     expect(response.body.alreadyUsed).toBe(false);
     expect(response.body.user).toEqual({ telegramId: 10, firstName: 'Max', photoUrl: null });
-    expect(response.body.balance).toBe(generateBalance(10));
+    expect(response.body.balance).toBeUndefined();
   });
 
   it('passes photo_url through as photoUrl', async () => {
@@ -47,13 +46,6 @@ describe('GET /api/me', () => {
     const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', initData);
 
     expect(response.body.user.photoUrl).toBe('https://t.me/i/userpic/320/x.jpg');
-  });
-
-  it('prefers balanceOverride over the generated balance', async () => {
-    await usersRepo.setBalanceOverride(12, 32688.59);
-    const response = await request(app).get('/api/me').set('X-Telegram-Init-Data', buildInitData(12));
-
-    expect(response.body.balance).toBe(32688.59);
   });
 
   it('reports alreadyUsed=true once the free run is spent', async () => {

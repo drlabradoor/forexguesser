@@ -64,15 +64,6 @@ describe('admin routes', () => {
     expect(response.body.users).toHaveLength(1);
   });
 
-  it('sets a balance override', async () => {
-    const response = await request(app)
-      .post('/api/admin/users/1/balance')
-      .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
-      .send({ value: 4242 });
-    expect(response.status).toBe(200);
-    expect((await usersRepo.getOrCreate(1)).balanceOverride).toBe(4242);
-  });
-
   it('toggles unlimited access', async () => {
     await request(app)
       .post('/api/admin/users/1/unlimited')

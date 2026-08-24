@@ -5,8 +5,6 @@ export const state = {
   phase: 'loading', // loading | idle | selected | analyzing | result | error
   targetUrl: 'https://t.me/',
   profile: null, // { telegramId, firstName, photoUrl }
-  balance: null,
-  balanceMode: 'real', // real | demo
   file: null,
   previewUrl: null,
   signal: null,

@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { UsersRepo } from '../db/users.repo.js';
-import { generateBalance } from '../balance.js';
 
 export function createMeHandler(usersRepo: UsersRepo) {
   return async function meHandler(req: Request, res: Response, next: NextFunction) {
@@ -14,7 +13,6 @@ export function createMeHandler(usersRepo: UsersRepo) {
           firstName: telegramUser.firstName,
           photoUrl: telegramUser.photoUrl ?? null,
         },
-        balance: user.balanceOverride ?? generateBalance(telegramUser.id),
       });
     } catch (err) {
       next(err);

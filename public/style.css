@@ -159,7 +159,7 @@ body {
 .locked__subtitle { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--text-dim); max-width: 300px; }
 .locked .button--primary { max-width: 320px; }
 
-.screen { display: flex; flex-direction: column; gap: 14px; }
+.screen { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
 .profile { display: flex; align-items: center; gap: 10px; }
 
@@ -184,61 +184,6 @@ body {
 .profile__name { font-size: 15px; font-weight: 600; line-height: 1.2; }
 .profile__id { font-size: 12px; color: var(--text-mute); }
 
-.balance {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 14px 16px 16px;
-}
-
-.balance__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-
-.balance__label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-}
-
-.balance__label svg { width: 13px; height: 13px; }
-.balance__controls { display: flex; align-items: center; gap: 8px; }
-.balance__value { margin-top: 10px; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
-
-.chips { display: flex; gap: 2px; background: var(--surface-2); border-radius: 999px; padding: 2px; }
-
-.chip {
-  font: inherit;
-  font-size: 11px;
-  border: 0;
-  background: none;
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
-.chip.is-active { background: rgba(255, 255, 255, 0.08); color: var(--text); }
-.chip--real.is-active { background: var(--success); color: #0D0E10; font-weight: 600; }
-
-.icon-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-}
-
-.icon-button svg { width: 15px; height: 15px; }
-
 .dropzone {
   border: 1.5px dashed var(--border);
   border-radius: var(--radius-card);
@@ -255,6 +200,18 @@ body {
   padding: 34px 20px 30px;
   cursor: pointer;
 }
+
+/* Карточка баланса занимала ~90px; без неё дропзона забирает освободившуюся
+   вертикаль и центрирует своё содержимое, иначе экран читается как обрезанный
+   сверху. max-height не даёт рамке разъехаться на весь высокий экран. */
+.dropzone:not(.dropzone--filled) {
+  flex: 1;
+  max-height: 420px;
+  display: flex;
+  align-items: center;
+}
+
+.dropzone:not(.dropzone--filled) .dropzone__inner { width: 100%; }
 
 .dropzone__icon {
   width: 46px;

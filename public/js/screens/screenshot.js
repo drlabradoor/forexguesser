@@ -1,6 +1,6 @@
 import { state, setState } from '../state.js';
 import { icons } from '../icons.js';
-import { formatBalance, formatLevels, DEMO_BALANCE } from '../format.js';
+import { formatLevels } from '../format.js';
 import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
 import { postAnalyze, ApiError } from '../api.js';
 import { startStatusRotation } from '../statuses.js';
@@ -24,83 +24,6 @@ function renderProfile() {
     </div>
   `;
   return header;
-}
-
-function currentBalance() {
-  return state.balanceMode === 'demo' ? DEMO_BALANCE : state.balance;
-}
-
-// What each account last showed on screen. The card is rebuilt on every
-// setState, so without this the count-up replayed on every unrelated render
-// -- picking a file, switching tabs, an error -- and the digits never sat
-// still.
-const shownBalances = { real: null, demo: null };
-
-function animateBalance(el, from, to) {
-  const duration = 800;
-  const start = performance.now();
-  el.textContent = formatBalance(from);
-  function frame(now) {
-    const progress = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = formatBalance(from + (to - from) * eased);
-    if (progress < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-}
-
-/** Counts up on the first sight of an account and whenever the number has
- *  actually grown; every other render just prints it. */
-function paintBalance(el, mode, target) {
-  const previous = shownBalances[mode];
-  shownBalances[mode] = target;
-
-  if (previous === null) {
-    animateBalance(el, 0, target);
-  } else if (target > previous) {
-    animateBalance(el, previous, target);
-  } else {
-    el.textContent = formatBalance(target);
-  }
-}
-
-function renderBalance() {
-  if (state.balance === null) return null;
-  const card = document.createElement('section');
-  card.className = 'balance';
-  card.innerHTML = `
-    <div class="balance__top">
-      <span class="balance__label">${icons.wallet}Баланс</span>
-      <div class="balance__controls">
-        <div class="chips">
-          <button class="chip ${state.balanceMode === 'demo' ? 'is-active' : ''}" data-mode="demo">Демо</button>
-          <button class="chip chip--real ${state.balanceMode === 'real' ? 'is-active' : ''}" data-mode="real">Реал</button>
-        </div>
-        <button class="icon-button" data-action="refresh-balance">${icons.refresh}</button>
-      </div>
-    </div>
-    <div class="balance__value"></div>
-  `;
-
-  const value = card.querySelector('.balance__value');
-  paintBalance(value, state.balanceMode, currentBalance());
-
-  card.addEventListener('click', (event) => {
-    const chip = event.target.closest('[data-mode]');
-    if (chip) {
-      const mode = chip.dataset.mode;
-      localStorage.setItem('balanceMode', mode);
-      setState({ balanceMode: mode });
-      return;
-    }
-    if (event.target.closest('[data-action="refresh-balance"]')) {
-      // Deliberate replay: the user pressed it, so it is not the automatic
-      // re-animation that made the digits restless.
-      animateBalance(value, 0, currentBalance());
-    }
-  });
-
-  return card;
 }
 
 const DROPZONE_HINT =
@@ -310,8 +233,6 @@ export function renderScreenshot() {
   const section = document.createElement('section');
   section.className = 'screen';
   section.appendChild(renderProfile());
-  const balance = renderBalance();
-  if (balance) section.appendChild(balance);
 
   if (state.phase === 'idle' || state.phase === 'loading') {
     section.appendChild(renderDropzone());
