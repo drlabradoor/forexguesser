@@ -1,7 +1,8 @@
 import { state, setState, subscribe } from './state.js';
 import { icons } from './icons.js';
-import { getConfig, getMe } from './api.js';
+import { getConfig, getMe, getSignals } from './api.js';
 import { renderScreenshot, acceptFile } from './screens/screenshot.js';
+import { renderSignals } from './screens/signals.js';
 import { renderLocked } from './screens/locked.js';
 import { openAccessChat } from './cta.js';
 
@@ -27,19 +28,16 @@ function renderTabBar() {
 function renderContent() {
   const root = document.getElementById('content');
   root.innerHTML = '';
-  // Заглушки центрируются по вертикали, но только на широких экранах -- правило
-  // живёт в @media (min-width: 600px).
-  root.classList.toggle('content--centered', state.tab !== 'screenshot');
+  // Пустые экраны центрируются по вертикали, но только на широких экранах --
+  // правило живёт в @media (min-width: 600px). Список сигналов не пустой экран.
+  root.classList.toggle(
+    'content--centered',
+    state.tab === 'trading' || (state.tab === 'signals' && !state.signals?.length)
+  );
   if (state.tab === 'screenshot') {
     root.appendChild(renderScreenshot());
   } else if (state.tab === 'signals') {
-    root.appendChild(
-      renderLocked({
-        icon: icons.signals,
-        title: 'Доступно в полной версии',
-        subtitle: 'История сигналов и уведомления о новых входах открываются вместе с полным доступом.',
-      })
-    );
+    root.appendChild(renderSignals());
   } else {
     root.appendChild(
       renderLocked({
@@ -56,15 +54,45 @@ function render() {
   renderContent();
 }
 
+// Флаг вне state: это транспорт, а не то, что рисуется. В state он вызывал бы
+// лишние перерисовки на каждый старт запроса.
+let signalsLoading = false;
+
+async function loadSignals() {
+  if (signalsLoading || state.signals !== null) return;
+  signalsLoading = true;
+  try {
+    const data = await getSignals();
+    setState({ signals: data.signals, hasAccess: data.hasAccess, signalsError: false });
+  } catch {
+    setState({ signalsError: true });
+  } finally {
+    signalsLoading = false;
+  }
+}
+
 document.getElementById('tabbar').addEventListener('click', (event) => {
   const button = event.target.closest('[data-tab]');
-  if (button) setState({ tab: button.dataset.tab });
+  if (!button) return;
+  setState({ tab: button.dataset.tab });
+  if (button.dataset.tab === 'signals') loadSignals();
 });
 
 const content = document.getElementById('content');
 
 content.addEventListener('click', (event) => {
-  if (event.target.closest('[data-action="cta"]')) openAccessChat(state.targetUrl);
+  if (event.target.closest('[data-action="cta"]')) {
+    openAccessChat(state.targetUrl);
+    return;
+  }
+  if (event.target.closest('[data-action="go-screenshot"]')) {
+    setState({ tab: 'screenshot' });
+    return;
+  }
+  if (event.target.closest('[data-action="retry-signals"]')) {
+    setState({ signalsError: false, signals: null });
+    loadSignals();
+  }
 });
 
 // Браузер по умолчанию открывает брошенный файл как страницу -- в вебвью это
