@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { forViewer } from '../../src/signals/visibility.js';
+import { forViewer, hasAccess } from '../../src/signals/visibility.js';
 import type { StoredSignal } from '../../src/types.js';
 
 const RECORD: StoredSignal = {
@@ -63,5 +63,19 @@ describe('forViewer with access', () => {
 
   it('never exposes the telegram id', () => {
     expect(Object.keys(forViewer(RECORD, true))).not.toContain('telegramId');
+  });
+});
+
+describe('hasAccess', () => {
+  it('opens the signal for a user granted unlimited access', () => {
+    expect(hasAccess({ unlimitedAccess: true, demoMode: false })).toBe(true);
+  });
+
+  it('opens the signal for the demo account used to record the promo', () => {
+    expect(hasAccess({ unlimitedAccess: false, demoMode: true })).toBe(true);
+  });
+
+  it('keeps it closed for a plain user', () => {
+    expect(hasAccess({ unlimitedAccess: false, demoMode: false })).toBe(false);
   });
 });

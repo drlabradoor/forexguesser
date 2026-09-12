@@ -105,3 +105,28 @@ describe('GET /api/signals', () => {
     expect(response.body.signals).toHaveLength(50);
   });
 });
+
+describe('GET /api/signals in demo mode', () => {
+  it('opens the history without the unlimited flag', async () => {
+    await signalsRepo.save(40, SIGNAL);
+    await usersRepo.setDemoMode(40, true);
+
+    const response = await request(app).get('/api/signals').set('X-Telegram-Init-Data', buildInitData(40));
+
+    expect(response.body.hasAccess).toBe(true);
+    expect(response.body.signals[0].locked).toBe(false);
+    expect(response.body.signals[0].rationale).toBe(SIGNAL.rationale);
+  });
+
+  it('closes it again when the flag is taken away', async () => {
+    await signalsRepo.save(41, SIGNAL);
+    await usersRepo.setDemoMode(41, true);
+    await usersRepo.setDemoMode(41, false);
+
+    const response = await request(app).get('/api/signals').set('X-Telegram-Init-Data', buildInitData(41));
+
+    expect(response.body.hasAccess).toBe(false);
+    expect(response.body.signals[0].locked).toBe(true);
+    expect(response.body.signals[0].rationale).toBeUndefined();
+  });
+});

@@ -114,3 +114,41 @@ describe('admin routes', () => {
     expect(response.status).toBe(403);
   });
 });
+
+describe('admin demo toggle', () => {
+  it('turns the demo mode on', async () => {
+    await request(app)
+      .post('/api/admin/users/1/demo')
+      .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
+      .send({ enabled: true });
+
+    expect((await usersRepo.getOrCreate(1)).demoMode).toBe(true);
+  });
+
+  it('turns it off again', async () => {
+    await usersRepo.setDemoMode(1, true);
+    await request(app)
+      .post('/api/admin/users/1/demo')
+      .set('X-Telegram-Init-Data', buildInitData(OWNER_ID))
+      .send({ enabled: false });
+
+    expect((await usersRepo.getOrCreate(1)).demoMode).toBe(false);
+  });
+
+  it('is closed to a stranger, like every other admin route', async () => {
+    const response = await request(app)
+      .post('/api/admin/users/1/demo')
+      .set('X-Telegram-Init-Data', buildInitData(999))
+      .send({ enabled: true });
+
+    expect(response.status).toBe(403);
+    expect((await usersRepo.getOrCreate(1)).demoMode).toBe(false);
+  });
+
+  it('reports the flag in the user list the panel renders', async () => {
+    await usersRepo.setDemoMode(1, true);
+    const response = await request(app).get('/api/admin/users').set('X-Telegram-Init-Data', buildInitData(OWNER_ID));
+
+    expect(response.body.users[0].demoMode).toBe(true);
+  });
+});

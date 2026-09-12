@@ -58,9 +58,11 @@ async function loadUsers() {
       <td>${user.telegramId}</td>
       <td>${user.freeRunUsed ? 'да' : 'нет'}</td>
       <td>${user.unlimitedAccess ? 'да' : 'нет'}</td>
+      <td>${user.demoMode ? 'да' : 'нет'}</td>
       <td>
         <button data-action="reset" data-id="${user.telegramId}">Сброс</button>
         <button data-action="unlimited" data-id="${user.telegramId}">Безлимит вкл/выкл</button>
+        <button data-action="demo" data-id="${user.telegramId}">Демо вкл/выкл</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -77,6 +79,9 @@ document.getElementById('users-body').addEventListener('click', async (event) =>
   } else if (action === 'unlimited') {
     const enabled = confirm('Включить безлимит для этого пользователя?');
     await apiFetch(`/api/admin/users/${id}/unlimited`, { method: 'POST', body: JSON.stringify({ enabled }) });
+  } else if (action === 'demo') {
+    const enabled = confirm('Включить демо-режим (съёмка) для этого пользователя?');
+    await apiFetch(`/api/admin/users/${id}/demo`, { method: 'POST', body: JSON.stringify({ enabled }) });
   }
   await loadUsers();
 });

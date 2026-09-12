@@ -46,3 +46,31 @@ describe('UsersRepo', () => {
     expect(ids).toEqual([1, 2]);
   });
 });
+
+describe('UsersRepo demo mode', () => {
+  it('is off for a freshly created user', async () => {
+    const user = await repo.getOrCreate(700);
+    expect(user.demoMode).toBe(false);
+  });
+
+  it('turns on and off again', async () => {
+    await repo.setDemoMode(701, true);
+    expect((await repo.getOrCreate(701)).demoMode).toBe(true);
+
+    await repo.setDemoMode(701, false);
+    expect((await repo.getOrCreate(701)).demoMode).toBe(false);
+  });
+
+  it('creates the user when the flag is set before the first visit', async () => {
+    await repo.setDemoMode(702, true);
+    expect((await repo.listAll()).some((u) => u.telegramId === 702 && u.demoMode)).toBe(true);
+  });
+
+  it('leaves unlimited access alone', async () => {
+    await repo.setUnlimited(703, true);
+    await repo.setDemoMode(703, true);
+    await repo.setDemoMode(703, false);
+
+    expect((await repo.getOrCreate(703)).unlimitedAccess).toBe(true);
+  });
+});

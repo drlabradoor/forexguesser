@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
   telegram_id BIGINT PRIMARY KEY,
   free_run_used BOOLEAN NOT NULL DEFAULT FALSE,
   unlimited_access BOOLEAN NOT NULL DEFAULT FALSE,
+  demo_mode BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -53,7 +54,20 @@ export function createPool(connectionString: string): pg.Pool {
  */
 export const LEGACY_CLEANUP_SQL = 'ALTER TABLE users DROP COLUMN IF EXISTS balance_override';
 
+/**
+ * `CREATE TABLE IF NOT EXISTS` выше не трогает таблицу, которая уже есть, --
+ * на проде она есть, и колонка из неё просто не появится. Поэтому каждая
+ * новая колонка добавляется отдельным выражением, идемпотентным по своей
+ * природе, а не правкой одного только `SCHEMA_SQL`.
+ */
+export const ADD_COLUMNS_SQL = [
+  'ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_mode BOOLEAN NOT NULL DEFAULT FALSE',
+];
+
 export async function initSchema(db: Queryable): Promise<void> {
   await db.query(SCHEMA_SQL);
   await db.query(LEGACY_CLEANUP_SQL);
+  for (const statement of ADD_COLUMNS_SQL) {
+    await db.query(statement);
+  }
 }

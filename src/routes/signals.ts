@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { UsersRepo } from '../db/users.repo.js';
 import type { SignalsRepo } from '../db/signals.repo.js';
-import { forViewer } from '../signals/visibility.js';
+import { forViewer, hasAccess } from '../signals/visibility.js';
 
 /**
  * Потолок, который на практике не наступит: каждый разбор -- это ручной
@@ -18,9 +18,10 @@ export function createSignalsHandler(usersRepo: UsersRepo, signalsRepo: SignalsR
 
       // Доступ проверяется на каждом чтении: отзыв доступа должен закрывать
       // историю обратно, а не работать наполовину.
+      const access = hasAccess(user);
       res.json({
-        hasAccess: user.unlimitedAccess,
-        signals: records.map((record) => forViewer(record, user.unlimitedAccess)),
+        hasAccess: access,
+        signals: records.map((record) => forViewer(record, access)),
       });
     } catch (err) {
       next(err);

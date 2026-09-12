@@ -188,3 +188,73 @@ describe('POST /api/analyze', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('POST /api/analyze in demo mode', () => {
+  it('runs again after the teaser was already spent', async () => {
+    await usersRepo.markRunUsed(30);
+    await usersRepo.setDemoMode(30, true);
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+
+    const response = await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(30))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('returns the signal open, not behind the teaser', async () => {
+    await usersRepo.setDemoMode(31, true);
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+
+    const response = await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(31))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    expect(response.body.signal.locked).toBe(false);
+    expect(response.body.signal.entryPrice).toBe(1.1);
+  });
+
+  it('does not spend the teaser, so takes can be repeated', async () => {
+    await usersRepo.setDemoMode(32, true);
+    const app = buildApp(usersRepo, signalsRepo, fakeClaudeReturning(SAMPLE_SIGNAL));
+
+    await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(32))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    expect((await usersRepo.getOrCreate(32)).freeRunUsed).toBe(false);
+  });
+
+  it('asks the model for the short write-up', async () => {
+    await usersRepo.setDemoMode(33, true);
+    const claude = fakeClaudeReturning(SAMPLE_SIGNAL);
+    const app = buildApp(usersRepo, signalsRepo, claude);
+
+    await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(33))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    const sent = claude.messages.create.mock.calls[0][0];
+    expect(sent.system).toContain('1-2 предложения');
+    expect(sent.tools[0].input_schema.properties.key_points.maxItems).toBe(3);
+  });
+
+  it('still asks a paying user for the full write-up', async () => {
+    await usersRepo.setUnlimited(34, true);
+    const claude = fakeClaudeReturning(SAMPLE_SIGNAL);
+    const app = buildApp(usersRepo, signalsRepo, claude);
+
+    await request(app)
+      .post('/api/analyze')
+      .set('X-Telegram-Init-Data', buildInitData(34))
+      .send({ imageBase64: 'abc', mediaType: 'image/png' });
+
+    const sent = claude.messages.create.mock.calls[0][0];
+    expect(sent.system).toContain('2-3 предложения');
+    expect(sent.tools[0].input_schema.properties.key_points.maxItems).toBe(5);
+  });
+});

@@ -1,7 +1,31 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Signal } from '../types.js';
 
-const SYSTEM_PROMPT = `Ты — опытный трейдинг-аналитик, специализирующийся на техническом анализе графиков форекс и
+/**
+ * Сколько модель пишет. Выходные токены генерируются последовательно и
+ * составляют основную часть задержки, поэтому короткий разбор -- это не
+ * косметика, а почти двукратное ускорение. Включается только для демо-режима:
+ * платящий пользователь покупает именно развёрнутый разбор.
+ */
+interface Verbosity {
+  keyPointsRule: string;
+  rationaleRule: string;
+  maxKeyPoints: number;
+}
+
+const FULL: Verbosity = {
+  keyPointsRule: 'от 3 до 5 коротких утверждений',
+  rationaleRule: '2-3 предложения',
+  maxKeyPoints: 5,
+};
+
+const BRIEF: Verbosity = {
+  keyPointsRule: 'ровно 3 коротких утверждения',
+  rationaleRule: '1-2 предложения',
+  maxKeyPoints: 3,
+};
+
+const systemPrompt = (v: Verbosity) => `Ты — опытный трейдинг-аналитик, специализирующийся на техническом анализе графиков форекс и
 криптовалют. Тебе присылают скриншот графика цены (свечной или линейный). Внимательно изучи видимые на изображении
 данные: название инструмента и таймфрейм в интерфейсе платформы, подписи цен на оси, форму последних свечей, видимые
 уровни поддержки/сопротивления, видимые индикаторы (если есть).
@@ -15,10 +39,10 @@ const SYSTEM_PROMPT = `Ты — опытный трейдинг-аналитик
 - instrument — торговый инструмент так, как он подписан на графике, например "AUD/CHF" или "BTC/USD". Если подпись
   не читается — верни null. Не угадывай пару по форме свечей.
 - timeframe — таймфрейм в нотации M1/M5/M15/M30/H1/H4/D1. Если он не виден на скриншоте — верни null.
-- key_points — от 3 до 5 коротких утверждений на русском о том, что именно ты разглядел на скриншоте. status "ok"
+- key_points — ${v.keyPointsRule} на русском о том, что именно ты разглядел на скриншоте. status "ok"
   для того, что удалось распознать, status "warn" для того, что прочитать не удалось. Если instrument или timeframe
   вернулись как null, обязательно добавь соответствующий пункт со status "warn".
-- rationale — обоснование сигнала на русском, 2-3 предложения, простым языком.`;
+- rationale — обоснование сигнала на русском, ${v.rationaleRule}, простым языком.`;
 
 interface SignalToolInput {
   trend: 'bullish' | 'bearish' | 'neutral';
@@ -43,12 +67,14 @@ function normalizeOptional(value: string | null | undefined): string | null {
 export async function analyzeChart(
   client: Anthropic,
   imageBase64: string,
-  mediaType: 'image/png' | 'image/jpeg' | 'image/webp'
+  mediaType: 'image/png' | 'image/jpeg' | 'image/webp',
+  options: { brief?: boolean } = {}
 ): Promise<Signal> {
+  const verbosity = options.brief ? BRIEF : FULL;
   const response = await client.messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt(verbosity),
     tools: [
       {
         name: 'provide_signal',
@@ -73,7 +99,7 @@ export async function analyzeChart(
             key_points: {
               type: 'array',
               minItems: 3,
-              maxItems: 5,
+              maxItems: verbosity.maxKeyPoints,
               items: {
                 type: 'object',
                 properties: {

@@ -37,6 +37,7 @@ export interface UserRecord {
   telegramId: number;
   freeRunUsed: boolean;
   unlimitedAccess: boolean;
+  demoMode: boolean;
   createdAt: string;
 }
 

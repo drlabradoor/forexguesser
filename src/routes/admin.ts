@@ -35,6 +35,20 @@ export function createAdminRouter(
     }
   });
 
+  // Один тумблер, а не набор: демо-режим разом даёт доступ, снимает лимит
+  // тизера, прячет профиль и укорачивает разбор. Разнесённые флаги
+  // гарантированно разъедутся -- второй забудут включить прямо на съёмке.
+  router.post('/users/:telegramId/demo', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const telegramId = Number(req.params.telegramId);
+      const { enabled } = req.body as { enabled: boolean };
+      await usersRepo.setDemoMode(telegramId, enabled);
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.post('/users/:telegramId/reset', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const telegramId = Number(req.params.telegramId);
