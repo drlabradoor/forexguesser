@@ -14,7 +14,7 @@ function fileToBase64(file) {
   });
 }
 
-async function decode(file) {
+export async function decode(file) {
   if (typeof createImageBitmap === 'function') {
     try {
       return await createImageBitmap(file);

@@ -12,6 +12,7 @@ export const state = {
   expandedSignalId: null,
   file: null,
   previewUrl: null,
+  shotIsLight: false, // светлый ли скриншот: от этого зависит вариант луча
   signal: null,
   error: null, // { title, text, action } where action is 'retry' | 'cta' | 'none'
 };

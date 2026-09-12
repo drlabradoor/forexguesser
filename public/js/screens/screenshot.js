@@ -4,6 +4,7 @@ import { formatLevels } from '../format.js';
 import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
 import { postAnalyze, ApiError } from '../api.js';
 import { startScan } from '../scan.js';
+import { probeIsLight } from '../luma.js';
 import { BRAND } from '../brand.js';
 
 function initials(name) {
@@ -51,7 +52,30 @@ export function acceptFile(file) {
     return;
   }
   if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-  setState({ phase: 'selected', file, previewUrl: URL.createObjectURL(file), signal: null, error: null });
+  setState({
+    phase: 'selected',
+    file,
+    previewUrl: URL.createObjectURL(file),
+    signal: null,
+    error: null,
+    shotIsLight: false,
+  });
+  measureShot(file);
+}
+
+/**
+ * Замер яркости не задерживает превью: до скана пользователю ещё жать кнопку,
+ * а к этому моменту замер давно готов. Сверка с `state.file` нужна на случай,
+ * когда картинку успели поменять -- замер прошлой возвращаться сюда не должен.
+ * Отказ декода оставляет тёмный луч: сегодня он единственный, то есть хуже,
+ * чем сейчас, не станет.
+ */
+function measureShot(file) {
+  probeIsLight(file)
+    .then((light) => {
+      if (light && state.file === file) setState({ shotIsLight: true });
+    })
+    .catch(() => {});
 }
 
 function renderDropzone() {
@@ -94,7 +118,7 @@ function renderPreview() {
   const box = document.createElement('section');
   box.className = 'dropzone dropzone--filled';
   box.innerHTML = `
-    <div class="shot${scanning ? ' shot--scanning' : ''}">
+    <div class="shot${scanning ? ' shot--scanning' : ''}${state.shotIsLight ? ' shot--light' : ''}">
       <img class="dropzone__preview" src="${state.previewUrl}" alt="" />
       ${scanning ? SCAN_OVERLAY : ''}
     </div>
