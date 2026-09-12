@@ -199,6 +199,35 @@ body {
 
 .screen { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
+/* Коробка левой колонки: вне двухколоночного результата её как будто нет --
+   `display: contents` отдаёт превью прямо во флекс экрана. */
+.shotcol { display: contents; }
+
+/* Крупное название. Прячется по умолчанию: место под него есть только в
+   двухколоночном результате, правило на показ живёт в @media 1000px. */
+.bigmark {
+  display: none;
+  font-size: clamp(28px, 3.6vw, 48px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+
+/* Та же оранжевая точка, что у мелкого вордмарка в шапке: два разных знака в
+   одном кадре читались бы как два разных продукта. */
+.bigmark::before {
+  content: '';
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(245, 166, 35, 0.9);
+}
+
 .profile { display: flex; align-items: center; gap: 10px; }
 
 .profile__avatar {
@@ -777,16 +806,39 @@ body > p { margin: 16px; }
   /* Результат в две колонки: график и уровни видны одновременно, сверять их
      скроллом больше не нужно. Профиль -- на всю ширину, иначе колонки
      стартовали бы с разной вертикали. */
+  /* `align-content` нужен в паре с `align-items`, и оба -- `start`: экран тянется
+     во всю высоту флексом, а грид по умолчанию раздаёт остаток высоты строкам.
+     На высоком экране от этого между шапкой и графиком зияла пустота. */
   .screen.is-result {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
+    align-content: start;
     gap: 20px;
   }
 
   .screen.is-result .profile { grid-column: 1 / -1; }
-  .screen.is-result .dropzone--filled { grid-column: 1; }
   .screen.is-result .result { grid-column: 2; }
+
+  /* Здесь коробка левой колонки перестаёт быть прозрачной для грида: график и
+     название складываются в столбик внутри одной ячейки. */
+  .screen.is-result .shotcol {
+    grid-column: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* Название в пустоте под графиком: карточка разбора выше графика, и этот
+     остаток левой колонки -- единственное место, где такой кегль ничего не
+     вытесняет. Ради этого оно и появляется только здесь. */
+  .screen.is-result .bigmark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
   .screen.is-result .dropzone__preview { max-height: 70vh; }
 }
 

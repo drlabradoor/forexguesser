@@ -356,6 +356,20 @@ function renderError() {
   return card;
 }
 
+/**
+ * График и крупное название -- одна коробка, а не два элемента грида: вторым
+ * элементом название встало бы в новую строку, то есть под всей карточкой
+ * разбора, а не под графиком. Вне двухколоночной раскладки коробка объявлена
+ * `display: contents` и на расстановку не влияет вовсе.
+ */
+function renderShotColumn() {
+  const column = document.createElement('div');
+  column.className = 'shotcol';
+  column.appendChild(renderPreview());
+  column.insertAdjacentHTML('beforeend', `<div class="bigmark">${BRAND}</div>`);
+  return column;
+}
+
 export function renderScreenshot() {
   const section = document.createElement('section');
   // Маркер для CSS: двухколоночная раскладка на >=1000px включается только в
@@ -370,7 +384,7 @@ export function renderScreenshot() {
     return section;
   }
 
-  if (state.previewUrl) section.appendChild(renderPreview());
+  if (state.previewUrl) section.appendChild(renderShotColumn());
 
   if (state.phase === 'selected' || state.phase === 'analyzing') {
     const button = renderAnalyzeButton();
