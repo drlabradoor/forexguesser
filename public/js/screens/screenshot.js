@@ -3,7 +3,8 @@ import { icons } from '../icons.js';
 import { formatLevels } from '../format.js';
 import { ALLOWED_TYPES, prepareImage, ImageError } from '../image.js';
 import { postAnalyze, ApiError } from '../api.js';
-import { startStatusRotation } from '../statuses.js';
+import { startScan } from '../scan.js';
+import { BRAND } from '../brand.js';
 
 function initials(name) {
   return (name || '?').trim().slice(0, 1).toUpperCase();
@@ -16,12 +17,16 @@ function renderProfile() {
   const avatar = profile?.photoUrl
     ? `<img class="profile__avatar" src="${profile.photoUrl}" alt="" />`
     : `<div class="profile__avatar profile__avatar--fallback">${initials(profile?.firstName)}</div>`;
+  // В демо-режиме сервер не присылает ID вовсе -- строки просто нет, вместо
+  // прочерка на её месте. Прочерк в кадре читался бы как поломка.
+  const id = profile?.telegramId == null ? '' : `<div class="profile__id">ID ${profile.telegramId}</div>`;
   header.innerHTML = `
     ${avatar}
     <div class="profile__meta">
       <div class="profile__name">${profile?.firstName ?? 'Гость'}</div>
-      <div class="profile__id">ID ${profile?.telegramId ?? '—'}</div>
+      ${id}
     </div>
+    <div class="wordmark">${BRAND}</div>
   `;
   return header;
 }
@@ -66,11 +71,38 @@ function renderDropzone() {
   return zone;
 }
 
+/**
+ * Оверлей лежит внутри `.shot`, а не в `.dropzone`: рамка обязана обводить
+ * саму картинку, а картинка занимает только часть коробки и центрируется.
+ */
+const SCAN_OVERLAY = `
+  <div class="scan">
+    <div class="scan__beam"></div>
+    <div class="scan__mark">${BRAND}</div>
+    <div class="scan__foot">
+      <div class="scan__phase">
+        <div class="scan__title"></div>
+        <div class="scan__subtitle"></div>
+      </div>
+      <div class="scan__percent">0%</div>
+    </div>
+  </div>
+`;
+
 function renderPreview() {
+  const scanning = state.phase === 'analyzing';
   const box = document.createElement('section');
   box.className = 'dropzone dropzone--filled';
-  box.innerHTML = `<img class="dropzone__preview" src="${state.previewUrl}" alt="" />`;
+  box.innerHTML = `
+    <div class="shot${scanning ? ' shot--scanning' : ''}">
+      <img class="dropzone__preview" src="${state.previewUrl}" alt="" />
+      ${scanning ? SCAN_OVERLAY : ''}
+    </div>
+  `;
   box.addEventListener('click', () => {
+    // Во время анализа картинка -- не кнопка. Без этой проверки клик по ней
+    // выбрасывал начатый разбор, а под оверлеем в неё как раз хочется ткнуть.
+    if (state.phase === 'analyzing') return;
     if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
     setState({ phase: 'idle', file: null, previewUrl: null });
   });
@@ -99,15 +131,30 @@ function errorFor(err) {
   return { title: 'Не удалось разобрать график', text: 'Попробуйте другой скриншот.', action: 'retry' };
 }
 
+/**
+ * Узлы ищутся заново на каждом тике, а не захватываются один раз: любой
+ * `setState` перерисовывает экран целиком, и сохранённые ссылки указывали бы
+ * на оторванные от документа элементы -- счётчик молча замирал бы.
+ */
+function paintScan({ percent, phase }) {
+  const root = document.querySelector('.scan');
+  if (!root) return;
+  root.querySelector('.scan__percent').textContent = `${percent}%`;
+  const title = root.querySelector('.scan__title');
+  if (title.textContent === phase.title) return;
+  title.textContent = phase.title;
+  root.querySelector('.scan__subtitle').textContent = phase.subtitle;
+}
+
 async function runAnalysis() {
   setState({ phase: 'analyzing', error: null });
-  const statusEl = document.querySelector('.analysis__status');
-  const rotation = statusEl ? startStatusRotation(statusEl) : null;
+  const scan = startScan(paintScan);
 
   try {
     const prepared = await prepareImage(state.file);
     const data = await postAnalyze(prepared);
-    if (rotation) await rotation.finish();
+    // Ждём добега до 100%: оборванный на 63% счётчик читается как падение.
+    await scan.finish();
     // Успешный закрытый разбор сам по себе означает, что тизер израсходован;
     // перезапрашивать /api/me ради факта, который только что произошёл, незачем.
     setState({
@@ -117,12 +164,19 @@ async function runAnalysis() {
       signals: null, // история устарела, перезагрузится при открытии таба
     });
   } catch (err) {
-    if (rotation) await rotation.finish();
+    // На ошибке счётчик не догоняется: «100%» и следом «не удалось разобрать»
+    // -- противоречие. Отказ должен приходить сразу.
+    scan.stop();
     setState({ phase: 'error', error: errorFor(err) });
   }
 }
 
 function renderAnalyzeButton() {
+  // Во время скана кнопки нет вовсе. Приглушить её мало: сплошная плита во всю
+  // ширину перетягивает кадр на себя, а смотреть надо на картинку. Экран от
+  // этого не прыгает -- кнопка лежит под изображением, и та остаётся на месте.
+  if (state.phase === 'analyzing') return null;
+
   // Третье состояние: тизер потрачен, доступа нет. Кнопку анализа показывать
   // нечестно -- сервер всё равно ответит 403, а пользователь заплатит за это
   // выгрузкой картинки.
@@ -136,23 +190,9 @@ function renderAnalyzeButton() {
 
   const button = document.createElement('button');
   button.className = 'button button--primary';
-  button.disabled = state.phase === 'analyzing';
-  button.innerHTML =
-    state.phase === 'analyzing'
-      ? '<span class="spinner"></span>Анализ'
-      : `${icons.camera}Анализировать скриншот`;
+  button.innerHTML = `${icons.camera}Анализировать скриншот`;
   button.addEventListener('click', runAnalysis);
   return button;
-}
-
-function renderAnalysisCard() {
-  const card = document.createElement('section');
-  card.className = 'analysis';
-  card.innerHTML = `
-    <div class="analysis__label">${icons.clock}Технический разбор</div>
-    <div class="analysis__status"></div>
-  `;
-  return card;
 }
 
 const TREND = {
@@ -333,10 +373,8 @@ export function renderScreenshot() {
   if (state.previewUrl) section.appendChild(renderPreview());
 
   if (state.phase === 'selected' || state.phase === 'analyzing') {
-    section.appendChild(renderAnalyzeButton());
-  }
-  if (state.phase === 'analyzing') {
-    section.appendChild(renderAnalysisCard());
+    const button = renderAnalyzeButton();
+    if (button) section.appendChild(button);
   }
   if (state.phase === 'result' && state.signal) {
     if (state.signal.locked) {

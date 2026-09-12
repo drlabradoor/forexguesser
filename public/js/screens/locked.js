@@ -1,4 +1,5 @@
 import { icons } from '../icons.js';
+import { BRAND } from '../brand.js';
 
 export function renderLocked({
   icon,
@@ -10,6 +11,7 @@ export function renderLocked({
   const section = document.createElement('section');
   section.className = 'locked';
   section.innerHTML = `
+    <div class="locked__brand">${BRAND}</div>
     <div class="locked__icon">${icon}</div>
     <h2 class="locked__title">${title}</h2>
     <p class="locked__subtitle">${subtitle}</p>
